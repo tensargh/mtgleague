@@ -73,7 +73,7 @@ erDiagram
         uuid id PK
         uuid store_id FK
         string name
-        enum "public|private"
+        enum publicvisibility "public|private"
         timestamp created_at
     }
     
