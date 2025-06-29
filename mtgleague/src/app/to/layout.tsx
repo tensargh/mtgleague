@@ -141,9 +141,6 @@ export default function TOLayout({ children }: { children: React.ReactNode }) {
             <Link href="/to/seasons" className="py-2 px-3 rounded hover:bg-blue-100 dark:hover:bg-blue-900 font-medium text-gray-800 dark:text-gray-100">
               Seasons
             </Link>
-            <Link href="/to/legs" className="py-2 px-3 rounded hover:bg-blue-100 dark:hover:bg-blue-900 font-medium text-gray-800 dark:text-gray-100">
-              Legs
-            </Link>
             <Link href="/to/players" className="py-2 px-3 rounded hover:bg-blue-100 dark:hover:bg-blue-900 font-medium text-gray-800 dark:text-gray-100">
               Players
             </Link>

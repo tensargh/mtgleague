@@ -23,6 +23,8 @@
 - ✅ Leg management within seasons
 - ✅ Automatic round number calculation
 - ✅ Leg status tracking (scheduled, in_progress, completed)
+- ✅ **Season completion management** - Mark seasons as completed
+- ✅ **Season status tracking** - Active vs completed season states
 
 #### Player Management
 - ✅ Player profiles with name and store association
@@ -43,6 +45,7 @@
 - ✅ Automatic points calculation
 - ✅ Best N results calculation for standings
 - ✅ Leg results with wins, draws, losses, points
+- ✅ **Best N results highlighting** - Visual indication of which legs count toward total score
 
 #### Database & Security
 - ✅ Complete database schema with all tables
@@ -58,6 +61,20 @@
 - ✅ Leg-by-leg breakdown showing individual scores
 - ✅ Best leg results highlighting
 - ✅ Responsive design with dark/light mode support
+- ✅ **Past seasons viewing** - "Find a past season" collapsible section
+- ✅ **Historical standings access** - Links to public season standings pages
+- ✅ **Public season standings page** - Dedicated page for viewing completed season results
+- ✅ **Anonymous user support** - Full functionality without authentication
+
+#### Tournament Features
+- ✅ **Top 8 tournament system** - Complete tournament bracket management
+- ✅ **Tournament creation** - Automatic Top 8 creation from season standings
+- ✅ **Tournament bracket management** - Manual player advancement between rounds
+- ✅ **Tournament match results** - Match result entry and winner tracking
+- ✅ **Tournament standings** - Complete bracket display with results
+- ✅ **Tournament completion** - Mark tournaments as completed
+- ✅ **Public tournament viewing** - Anonymous access to tournament brackets
+- ✅ **Professional bracket layout** - Clean, organized tournament bracket display
 
 #### TO Dashboard
 - ✅ TO-specific dashboard with sidebar navigation
@@ -66,6 +83,9 @@
 - ✅ Results entry interface with live calculations
 - ✅ Player management interface
 - ✅ Quick add player functionality
+- ✅ **Top 8 tournament management** - Create and manage tournament brackets
+- ✅ **Tournament result entry** - Enter match results and advance players
+- ✅ **Tournament completion** - Mark tournaments as completed
 
 #### Admin Dashboard
 - ✅ User management interface
@@ -75,31 +95,22 @@
 
 ### 🔄 IN PROGRESS / PARTIALLY COMPLETE
 
-#### Season Completion
-- ⚠️ Season status management (marking seasons as completed)
-- ⚠️ Past seasons viewing interface
-- ⚠️ Historical standings access
+#### Advanced Features
+- ⚠️ Tiebreaker calculations
+- ⚠️ Advanced standings algorithms
+- ⚠️ Season statistics and analytics
+- ⚠️ Player performance tracking over time
 
 ### ❌ NOT YET IMPLEMENTED
 
-#### Tournament Features
-- ❌ Top 8 tournament system
-- ❌ Tournament bracket management
-- ❌ Tournament match results
-- ❌ Tournament standings
-
 #### Advanced Features
-- ❌ Tiebreaker calculations
-- ❌ Advanced standings algorithms
-- ❌ Season statistics and analytics
-- ❌ Player performance tracking over time
 - ❌ Export functionality (CSV, PDF)
+- ❌ Advanced search and filtering
 
 #### User Experience
 - ❌ Email notifications for leg results
 - ❌ Mobile app or PWA
 - ❌ Real-time updates
-- ❌ Advanced search and filtering
 
 #### Integration
 - ❌ API endpoints for external integrations
@@ -109,7 +120,7 @@
 ## Store Details Page Layout (Updated)
 
 ### Page Structure
-The store details page should display information in the following order:
+The store details page displays information in the following order:
 
 1. **Store Information Section**
    - Store name, address, and logo
@@ -121,20 +132,24 @@ The store details page should display information in the following order:
    - Season name and status
    - Current standings grid showing:
      - Player names
-     - Total points
-     - Match records (W/D/L)
+     - Total points (calculated from best N results)
+     - Match records (W/D/L from best N results)
      - Leg participation
-     - Best leg results (if applicable)
+     - Best leg results highlighting (green background)
    - Season details (total legs, best legs count, etc.)
 
 3. **Past Seasons Section**
-   - "Find a past season" section
-   - List of completed seasons
-   - Access to historical standings
+   - "Find a past season" collapsible section
+   - List of completed seasons with completion dates
+   - "View Standings" buttons linking to public season pages
 
-### Removed Sections
-- **Active Seasons Information**: The summary section showing active seasons count, total players, and completed legs is removed
-- **Consolidated Stats**: Individual season containers provide all necessary information
+### Public Season Standings Page
+- **Dedicated URL**: `/public/season/[seasonId]/standings`
+- **Anonymous access**: No authentication required
+- **Complete standings**: Final season standings with best N results
+- **Top 8 bracket**: Tournament bracket display for completed tournaments
+- **Navigation**: "Back to Store" button for easy navigation
+- **Responsive design**: Works on all devices
 
 ### Design Requirements
 - Clean, modern UI with proper spacing between sections
@@ -142,6 +157,8 @@ The store details page should display information in the following order:
 - Dark/light mode support
 - Clear visual hierarchy with proper headings
 - Consistent styling with the rest of the application
+- Best N results highlighting with green background
+- Professional tournament bracket layout
 
 ## Technical Requirements
 
@@ -153,17 +170,21 @@ The store details page should display information in the following order:
 - **Legs**: Individual tournament legs within seasons
 - **Leg Results**: Match results and participation tracking
 - **Store TOs**: Many-to-many relationship between stores and TOs
+- **Top8s**: Tournament instances linked to seasons
+- **Top8 Matches**: Individual tournament matches with results
 
 ### Security
 - Row Level Security (RLS) policies for data access
 - Role-based permissions for all operations
 - Secure invitation system with token validation
 - Protected admin operations
+- Anonymous access to public pages
 
 ### Performance
 - Efficient queries for standings calculations
 - Proper indexing for fast data retrieval
 - Optimized loading of season data
+- Transaction-based tournament operations
 
 ## User Flows
 
@@ -172,7 +193,9 @@ The store details page should display information in the following order:
 2. Select a store from the list
 3. View store information and current standings
 4. Browse active seasons and their standings
-5. Access past seasons if available
+5. Access past seasons via "Find a past season" section
+6. View complete season results on public standings pages
+7. View tournament brackets for completed seasons
 
 ### TO Flow
 1. Sign in with invited account
@@ -180,6 +203,9 @@ The store details page should display information in the following order:
 3. Manage seasons and legs
 4. Enter match results
 5. View current standings
+6. Create Top 8 tournaments from completed seasons
+7. Manage tournament brackets and results
+8. Complete tournaments
 
 ### Admin Flow
 1. Sign in with admin account
@@ -192,22 +218,23 @@ The store details page should display information in the following order:
 - TO adoption and usage
 - Data accuracy in standings
 - System performance and reliability
+- Tournament participation and completion rates
 
 ## Next Priority Items
 
 ### HIGH PRIORITY
-1. **Past Seasons Viewing** - Implement the "Find a past season" functionality
-2. **Tiebreaker Calculations** - Implement proper tiebreaker logic for standings
-3. **Data Validation** - Add validation for leg results and player data
+1. **Tiebreaker Calculations** - Implement proper tiebreaker logic for standings
+2. **Data Validation** - Add validation for leg results and player data
+3. **Export Functionality** - Allow exporting standings to CSV/PDF
 
 ### MEDIUM PRIORITY
 1. **Email Notifications** - Notify players when leg results are posted
 2. **Advanced Standings** - Add more sophisticated standings calculations
-3. **Export Functionality** - Allow exporting standings to CSV/PDF
-4. **Mobile Optimization** - Improve mobile experience
+3. **Mobile Optimization** - Improve mobile experience
+4. **Season Statistics** - Add analytics and performance tracking
 
 ### LOW PRIORITY
-1. **Top 8 Tournament System** - Implement tournament brackets
-2. **Analytics Dashboard** - Add statistics and performance tracking
-3. **API Development** - Create external integration capabilities
-4. **Advanced Features** - Real-time updates, webhooks, etc.
+1. **Analytics Dashboard** - Add comprehensive statistics and performance tracking
+2. **API Development** - Create external integration capabilities
+3. **Advanced Features** - Real-time updates, webhooks, etc.
+4. **Mobile App** - Native mobile application or PWA

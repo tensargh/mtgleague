@@ -20,6 +20,7 @@ interface Season {
   status: 'active' | 'completed'
   created_at: string
   completed_at?: string
+  completed_legs_count?: number
 }
 
 interface Store {
@@ -105,7 +106,23 @@ export default function SeasonsPage() {
         .order('created_at', { ascending: false })
 
       if (!seasonsError) {
-        setSeasons(seasonsData || [])
+        // Load completed legs count for each season
+        const seasonsWithLegCounts = await Promise.all(
+          (seasonsData || []).map(async (season) => {
+            const { count: completedLegsCount } = await supabase
+              .from('legs')
+              .select('*', { count: 'exact', head: true })
+              .eq('season_id', season.id)
+              .eq('status', 'completed')
+            
+            return {
+              ...season,
+              completed_legs_count: completedLegsCount || 0
+            }
+          })
+        )
+        
+        setSeasons(seasonsWithLegCounts)
       } else {
         console.error('Error loading seasons:', seasonsError)
         toast.error('Failed to load seasons')
@@ -224,59 +241,106 @@ export default function SeasonsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {seasons.map((season) => (
-            <Card key={season.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{season.name}</CardTitle>
-                  {getStatusBadge(season.status)}
-                </div>
-                <CardDescription>
-                  Created {new Date(season.created_at).toLocaleDateString()}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Total Legs:</span>
-                    <span className="font-medium">{season.total_legs}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Best Legs Count:</span>
-                    <span className="font-medium">{season.best_legs_count}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Status:</span>
-                    <span className="font-medium capitalize">{season.status}</span>
-                  </div>
-                </div>
-                <div className="mt-4 pt-4 border-t space-y-2">
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      router.push(`/to/legs?season=${season.id}`)
-                    }}
-                  >
-                    Manage Legs
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      router.push(`/to/seasons/${season.id}/top8`)
-                    }}
-                  >
-                    <Trophy className="mr-2 h-4 w-4" />
-                    Top 8 Tournament
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-8">
+          {/* Active Seasons */}
+          {seasons.filter(season => season.status === 'active').length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Active Seasons</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {seasons
+                  .filter(season => season.status === 'active')
+                  .map((season) => (
+                    <Card key={season.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-green-500">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{season.name}</CardTitle>
+                          {getStatusBadge(season.status)}
+                        </div>
+                        <CardDescription>
+                          Created {new Date(season.created_at).toLocaleDateString()}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Total Legs:</span>
+                            <span className="font-medium">{season.total_legs}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Best Legs Count:</span>
+                            <span className="font-medium">{season.best_legs_count}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Completed Legs:</span>
+                            <span className="font-medium">{season.completed_legs_count || 0}</span>
+                          </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t">
+                          <Button 
+                            variant="outline" 
+                            className="w-full"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              router.push(`/to/legs?season=${season.id}`)
+                            }}
+                          >
+                            Details
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Completed Seasons */}
+          {seasons.filter(season => season.status === 'completed').length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Completed Seasons</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {seasons
+                  .filter(season => season.status === 'completed')
+                  .map((season) => (
+                    <Card key={season.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-gray-400">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{season.name}</CardTitle>
+                          {getStatusBadge(season.status)}
+                        </div>
+                        <CardDescription>
+                          Completed {season.completed_at ? new Date(season.completed_at).toLocaleDateString() : 'N/A'}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Total Legs:</span>
+                            <span className="font-medium">{season.total_legs}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Best Legs Count:</span>
+                            <span className="font-medium">{season.best_legs_count}</span>
+                          </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t">
+                          <Button 
+                            variant="outline" 
+                            className="w-full"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              router.push(`/to/legs?season=${season.id}`)
+                            }}
+                          >
+                            Details
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

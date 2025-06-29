@@ -183,7 +183,7 @@ export default function StoreDetailsPage() {
       console.log('Legs loaded for season:', seasonId, legs.length, 'legs')
 
       // Load standings for this season
-      const standings = await loadStandings(seasonId, legs)
+      const standings = await loadStandings(seasonId, legs, season.best_legs_count)
       console.log('Standings loaded for season:', seasonId, standings.length, 'players')
 
       // Update season data
@@ -267,7 +267,7 @@ export default function StoreDetailsPage() {
     }
   }
 
-  const loadStandings = async (seasonId: string, legsList: Leg[]): Promise<PlayerStanding[]> => {
+  const loadStandings = async (seasonId: string, legsList: Leg[], bestLegsCount: number): Promise<PlayerStanding[]> => {
     try {
       // Check if we have legs to query
       if (legsList.length === 0) {
@@ -283,94 +283,127 @@ export default function StoreDetailsPage() {
         return []
       }
 
-      console.log('Loading standings for season:', seasonId, 'with completed legs:', completedLegs.map(l => l.id))
+      console.log('Loading standings for season:', seasonId, 'with completed legs:', completedLegs.map(l => l.id), 'best legs count:', bestLegsCount)
 
-      // Get all players who have participated in any completed leg of this season
-      const { data: playerResults, error: resultsError } = await supabase
+      // First, get the store ID from the season
+      const { data: seasonData, error: seasonError } = await supabase
+        .from('seasons')
+        .select('store_id')
+        .eq('id', seasonId)
+        .single();
+
+      if (seasonError || !seasonData) {
+        console.error('Error loading season:', seasonError);
+        return [];
+      }
+
+      // Get all players from the store (not just those who participated)
+      const { data: players, error: playersError } = await supabase
+        .from('players')
+        .select('id, name, visibility')
+        .eq('store_id', seasonData.store_id);
+
+      if (playersError) {
+        console.error('Error loading players:', playersError);
+        return [];
+      }
+
+      console.log('All players loaded:', players?.length || 0, 'players');
+
+      // Get all leg results for completed legs in this season
+      const { data: allResults, error: resultsError } = await supabase
         .from('leg_results')
         .select(`
           player_id,
-          players!inner(name, visibility),
-          leg_id,
           wins,
           draws,
           losses,
           points,
-          participated
+          participated,
+          leg_id
         `)
-        .in('leg_id', completedLegs.map(leg => leg.id)) as { data: LegResultWithPlayer[] | null, error: any }
+        .in('leg_id', completedLegs.map(leg => leg.id));
 
       if (resultsError) {
-        console.error('Error loading player results:', resultsError)
-        console.error('Query details:', {
-          seasonId,
-          legIds: completedLegs.map(leg => leg.id),
-          error: resultsError
-        })
-        return []
+        console.error('Error loading leg results:', resultsError);
+        return [];
       }
 
-      console.log('Player results loaded:', playerResults?.length || 0, 'results')
+      console.log('All leg results loaded:', allResults?.length || 0, 'results');
 
-      // Group results by player
-      const playerMap = new Map<string, PlayerStanding>()
+      // Calculate standings
+      const standingsMap = new Map<string, PlayerStanding>();
 
-      playerResults?.forEach(result => {
-        if (!playerMap.has(result.player_id)) {
-          playerMap.set(result.player_id, {
-            player_id: result.player_id,
-            player_name: result.players.name,
-            player_visibility: result.players.visibility,
-            total_wins: 0,
-            total_draws: 0,
-            total_losses: 0,
-            total_points: 0,
-            legs_played: 0,
-            leg_scores: {},
-            best_leg_ids: []
-          })
-        }
+      // Initialize all players
+      players?.forEach(player => {
+        standingsMap.set(player.id, {
+          player_id: player.id,
+          player_name: player.name,
+          player_visibility: player.visibility,
+          total_wins: 0,
+          total_draws: 0,
+          total_losses: 0,
+          total_points: 0,
+          legs_played: 0,
+          leg_scores: {},
+          best_leg_ids: []
+        });
+      });
 
-        const player = playerMap.get(result.player_id)!
-        player.leg_scores[result.leg_id] = {
-          wins: result.wins,
-          draws: result.draws,
-          losses: result.losses,
-          points: result.points,
-          participated: result.participated
-        }
+      // Process results by leg
+      completedLegs.forEach(leg => {
+        const legResults = allResults?.filter(r => r.leg_id === leg.id) || [];
 
-        if (result.participated) {
-          player.total_wins += result.wins
-          player.total_draws += result.draws
-          player.total_losses += result.losses
-          player.total_points += result.points
-          player.legs_played += 1
-        }
-      })
+        console.log(`Results for leg ${leg.id}:`, legResults.length, 'results');
 
-      // Calculate best N results for each player
-      const season = seasons.find(s => s.id === seasonId)
-      if (season) {
-        playerMap.forEach(player => {
-          const { bestLegIds } = calculateBestNResults(player.leg_scores, season.best_legs_count)
-          player.best_leg_ids = bestLegIds
+        legResults.forEach(result => {
+          const standing = standingsMap.get(result.player_id);
+          if (standing) {
+            standing.total_wins += result.wins || 0;
+            standing.total_draws += result.draws || 0;
+            standing.total_losses += result.losses || 0;
+            standing.total_points += result.points || 0;
+            if (result.participated) {
+              standing.legs_played += 1;
+            }
+
+            // Store individual leg scores
+            standing.leg_scores[leg.id] = {
+              wins: result.wins || 0,
+              draws: result.draws || 0,
+              losses: result.losses || 0,
+              points: result.points || 0,
+              participated: result.participated || false
+            };
+          }
+        });
+      });
+
+      // Convert to array and apply best N results calculation
+      const standingsArray = Array.from(standingsMap.values())
+        .map(standing => {
+          // Calculate best N results for this player
+          const bestResults = calculateBestNResults(standing.leg_scores, bestLegsCount);
+          
+          return {
+            ...standing,
+            total_wins: bestResults.totalWins,
+            total_draws: bestResults.totalDraws,
+            total_losses: bestResults.totalLosses,
+            total_points: bestResults.totalPoints,
+            best_leg_ids: bestResults.bestLegIds
+          };
         })
-      }
+        .sort((a, b) => b.total_points - a.total_points);
 
-      // Convert to array and sort by total points
-      const standingsArray = Array.from(playerMap.values())
-        .sort((a, b) => b.total_points - a.total_points)
-
-      console.log('Standings calculated:', standingsArray.length, 'players')
-      return standingsArray
+      console.log('Calculated standings:', standingsArray.length, 'players');
+      return standingsArray;
 
     } catch (error) {
-      console.error('Error loading standings:', error)
-      toast.error('Failed to load standings')
-      return []
+      console.error('Error loading standings:', error);
+      return [];
     }
-  }
+  };
 
   const calculateBestNResults = (
     legScores: { [legId: string]: { wins: number; draws: number; losses: number; points: number; participated: boolean } },
@@ -750,161 +783,6 @@ export default function StoreDetailsPage() {
                 </CardContent>
               )}
             </Card>
-          )}
-
-          {/* Completed Seasons with Top 8 */}
-          {completedSeasons.length > 0 && (
-            <div className="space-y-8">
-              {completedSeasons.map((season) => {
-                const seasonDataItem = seasonData[season.id]
-                const top8Item = top8Data[season.id]
-                
-                return (
-                  <Card key={season.id}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Trophy className="h-5 w-5" />
-                        <span>{season.name} - Final Results</span>
-                        {getSeasonStatusBadge(season.status)}
-                      </CardTitle>
-                      <CardDescription>
-                        Completed season with final standings and tournament results
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {seasonDataItem ? (
-                        <div className="space-y-6">
-                          {/* Final Standings */}
-                          <div>
-                            <h3 className="text-lg font-semibold mb-4">Final Standings</h3>
-                            <div className="overflow-x-auto">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="w-48">Player</TableHead>
-                                    <TableHead className="text-center">Total Points</TableHead>
-                                    <TableHead className="text-center">W/D/L</TableHead>
-                                    <TableHead className="text-center">Legs Played</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {seasonDataItem.standings.map((standing, index) => (
-                                    <TableRow key={standing.player_id}>
-                                      <TableCell className="font-medium">
-                                        <div className="flex items-center space-x-2">
-                                          <span className="text-sm text-gray-500">#{index + 1}</span>
-                                          <span>{getPlayerDisplayName(standing.player_name, standing.player_visibility)}</span>
-                                        </div>
-                                      </TableCell>
-                                      <TableCell className="text-center font-bold">{standing.total_points}</TableCell>
-                                      <TableCell className="text-center">
-                                        {standing.total_wins}/{standing.total_draws}/{standing.total_losses}
-                                      </TableCell>
-                                      <TableCell className="text-center">{standing.legs_played}</TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          </div>
-
-                          {/* Top 8 Tournament Results */}
-                          {top8Item && (
-                            <div>
-                              <h3 className="text-lg font-semibold mb-4">Top 8 Tournament</h3>
-                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                {/* Quarter Finals */}
-                                <div>
-                                  <h4 className="font-medium mb-3">Quarter Finals</h4>
-                                  <div className="space-y-2">
-                                    {top8Item.matches.filter(m => m.round === 'qf').map((match) => (
-                                      <div key={match.id} className="p-3 border rounded-lg">
-                                        <div className="text-sm">
-                                          <div className="flex justify-between">
-                                            <span>{getPlayerDisplayName(match.player1?.name || '', match.player1?.visibility || 'public')}</span>
-                                            <span className="font-medium">{match.result?.split('-')[0]}</span>
-                                          </div>
-                                          <div className="flex justify-between">
-                                            <span>{getPlayerDisplayName(match.player2?.name || '', match.player2?.visibility || 'public')}</span>
-                                            <span className="font-medium">{match.result?.split('-')[1]}</span>
-                                          </div>
-                                          {match.winner && (
-                                            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                              Winner: {getPlayerDisplayName(match.winner.name, match.winner.visibility)}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Semi Finals */}
-                                <div>
-                                  <h4 className="font-medium mb-3">Semi Finals</h4>
-                                  <div className="space-y-2">
-                                    {top8Item.matches.filter(m => m.round === 'sf').map((match) => (
-                                      <div key={match.id} className="p-3 border rounded-lg">
-                                        <div className="text-sm">
-                                          <div className="flex justify-between">
-                                            <span>{getPlayerDisplayName(match.player1?.name || '', match.player1?.visibility || 'public')}</span>
-                                            <span className="font-medium">{match.result?.split('-')[0]}</span>
-                                          </div>
-                                          <div className="flex justify-between">
-                                            <span>{getPlayerDisplayName(match.player2?.name || '', match.player2?.visibility || 'public')}</span>
-                                            <span className="font-medium">{match.result?.split('-')[1]}</span>
-                                          </div>
-                                          {match.winner && (
-                                            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                              Winner: {getPlayerDisplayName(match.winner.name, match.winner.visibility)}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Final */}
-                                <div>
-                                  <h4 className="font-medium mb-3">Championship</h4>
-                                  <div className="space-y-2">
-                                    {top8Item.matches.filter(m => m.round === 'final').map((match) => (
-                                      <div key={match.id} className="p-3 border rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
-                                        <div className="text-sm">
-                                          <div className="flex justify-between">
-                                            <span>{getPlayerDisplayName(match.player1?.name || '', match.player1?.visibility || 'public')}</span>
-                                            <span className="font-medium">{match.result?.split('-')[0]}</span>
-                                          </div>
-                                          <div className="flex justify-between">
-                                            <span>{getPlayerDisplayName(match.player2?.name || '', match.player2?.visibility || 'public')}</span>
-                                            <span className="font-medium">{match.result?.split('-')[1]}</span>
-                                          </div>
-                                          {match.winner && (
-                                            <div className="text-xs text-green-600 dark:text-green-400 mt-1 font-bold">
-                                              🏆 Champion: {getPlayerDisplayName(match.winner.name, match.winner.visibility)}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-600 dark:text-gray-400">Loading season data...</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
           )}
         </div>
       </main>

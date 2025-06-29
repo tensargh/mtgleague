@@ -261,12 +261,6 @@ export default function TODashboard() {
                 <span>Create Season</span>
               </Button>
             </Link>
-            <Link href="/to/legs">
-              <Button variant="outline" className="h-20 w-full flex flex-col items-center justify-center space-y-2">
-                <Calendar className="h-6 w-6" />
-                <span>Manage Legs</span>
-              </Button>
-            </Link>
             <Link href="/to/players">
               <Button variant="outline" className="h-20 w-full flex flex-col items-center justify-center space-y-2">
                 <Users className="h-6 w-6" />
