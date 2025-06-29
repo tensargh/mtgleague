@@ -85,11 +85,6 @@ We'll be able to have leagues from multiple stores running concurrently.
 
 ### ❌ **NOT YET IMPLEMENTED:**
 
-#### Tournament Management
-- **Swiss Tournament Logic**: Automatic pairing and match generation
-- **Top 8 Knockout System**: Selection and tournament management
-- **Advanced Statistics**: Player performance analytics
-
 #### Content Management
 - **Store/League CMS**: Rules, announcements, and content management
 - **Logo Upload**: Store logo management
@@ -98,7 +93,10 @@ We'll be able to have leagues from multiple stores running concurrently.
 #### Advanced Features
 - **Google Maps Integration**: Store location mapping
 - **Player Search and Filtering**: Advanced player management
-- **Advanced Tournament Statistics**: Detailed performance metrics
+- **Advanced Statistics**: Detailed performance metrics
+
+#### Top 8 Results
+- **Top 8 Results Entry**: Enter and display results for the top 8 after the season is complete
 
 ## Stakeholders
 - Product Owner: the UK Pauper League team
@@ -137,8 +135,7 @@ We'll be able to have leagues from multiple stores running concurrently.
 - 🚧 As a Tournament Organiser, I should be able to set a player as anonymous so their name will not be visible to the public
 
 ### ❌ **NOT YET IMPLEMENTED USER STORIES:**
-- ❌ As a Tournament Organiser, I want to be able to run a top 8 event and enter the results
-- ❌ As a Tournament Organiser, I want to have flexibility in running the top 8 to decide how I will deal with no-shows
+- ❌ As a Tournament Organiser, I want to be able to enter Top 8 results after the season is complete
 - ❌ As a Tournament Organiser, I want to be able to post and update informational content, rules, and announcements for my Store or League
 - ❌ As a player, I want to see the results of a top 8 event without logging in
 
@@ -207,20 +204,18 @@ We'll be able to have leagues from multiple stores running concurrently.
 
 ### ❌ **NOT YET IMPLEMENTED:**
 
-#### Tournament Management
-- ❌ Swiss tournament algorithm and pairing
-- ❌ Top 8 knockout tournament system
-- ❌ Advanced tournament statistics
-
 #### Content Management
-- ❌ Store/league CMS for rules and announcements
-- ❌ Logo upload and management
-- ❌ External resource links
+- **Store/League CMS**: Rules, announcements, and content management
+- **Logo Upload**: Store logo management
+- **External Resource Links**: Links to external resources
 
 #### Advanced Features
-- ❌ Google Maps integration
-- ❌ Player search and filtering
-- ❌ Advanced performance analytics
+- **Google Maps Integration**: Store location mapping
+- **Player Search and Filtering**: Advanced player management
+- **Advanced Statistics**: Detailed performance metrics
+
+#### Top 8 Results
+- **Top 8 Results Entry**: Enter and display results for the top 8 after the season is complete
 
 ## Data Model
 
@@ -233,10 +228,19 @@ invites (id, email, role, store_id, token, expires_at, created_at)
 
 -- Store Management
 stores (id, name, address, phone, email, created_at, updated_at)
-store_users (id, user_id, store_id, role, created_at)
+store_tos (id, user_id, store_id, created_at)
 
 -- Season Management
 seasons (id, store_id, name, total_legs, best_legs_count, status, created_at, completed_at, updated_at)
+
+-- Player Management
+players (id, store_id, name, email, created_at)
+
+-- Leg Management
+legs (id, season_id, name, round_number, status, created_at, completed_at)
+
+-- Results Management
+leg_results (id, leg_id, player_id, wins, draws, losses, points, participated, created_at)
 ```
 
 ### 🚧 **PLANNED TABLES (Not Yet Implemented):**
@@ -266,15 +270,33 @@ store_content (id, store_id, type, title, content, created_at, updated_at)
 - **Email**: Resend.com integration
 - **Theming**: next-themes for dark/light mode
 - **UI Components**: Custom components with consistent design system
+- **State Management**: React hooks with proper state management
+- **Form Handling**: React Hook Form with validation
+- **Notifications**: Sonner toast notifications
+
+### 🔧 **DEVELOPMENT RULES & STANDARDS:**
+
+#### Database Operations
+- **Transactions Required**: Any operation requiring multiple inserts/updates must use database transactions
+- **RPC Functions**: Complex multi-step operations should be implemented as Supabase RPC functions
+- **Atomic Operations**: Ensure all related database changes succeed or fail together
+- **Constraint Safety**: Always validate data consistency before committing transactions
+- **Error Handling**: Provide clear error messages and automatic rollback on failures
+
+#### Code Quality
+- **Type Safety**: Use TypeScript interfaces for all data structures
+- **Error Boundaries**: Implement proper error handling and user feedback
+- **Loading States**: Show appropriate loading indicators for async operations
+- **Validation**: Validate data on both client and server side
+- **Security**: Use Row Level Security (RLS) for all database operations
 
 ### 🚧 **IN PROGRESS:**
-- Database migrations for remaining tables
-- Player management system
-- Tournament logic implementation
+- Anonymous player support UI
+- Store address fields UI
+- Top 8 system implementation
 
 ### ❌ **NOT YET IMPLEMENTED:**
 - Swiss tournament algorithm
-- Match result entry system
 - Top 8 knockout logic
 - Content management system
 - Google Maps integration
@@ -295,31 +317,31 @@ store_content (id, store_id, type, title, content, created_at, updated_at)
 
 ## Next Steps
 
-### Phase 1: Player Management (Priority: High)
-1. Implement player tables and CRUD operations
-2. Add player management UI for TOs
-3. Implement anonymous player support
+### Phase 1: Anonymous Player Support (Priority: High)
+1. ✅ ~~Implement player tables and CRUD operations~~ (COMPLETED)
+2. ✅ ~~Add player management UI for TOs~~ (COMPLETED)
+3. 🚧 Implement anonymous player support UI
+4. 🚧 Add store address fields UI
 
-### Phase 2: Tournament Management (Priority: High)
-1. Implement leg creation and management
-2. Add Swiss tournament logic
-3. Create match result entry system
-4. Implement season standings calculation
+### Phase 2: League Management (Priority: High)
+1. ✅ ~~Implement leg creation and management~~ (COMPLETED)
+2. ✅ ~~Create match result entry system~~ (COMPLETED)
+3. ✅ ~~Implement season standings calculation~~ (COMPLETED)
 
-### Phase 3: Top 8 System (Priority: Medium)
-1. Implement top 8 selection logic
-2. Create knockout tournament system
-3. Add match result tracking for top 8
+### Phase 3: Top 8 Results (Priority: Medium)
+1. ❌ Implement top 8 results entry and display after season completion
 
 ### Phase 4: Content Management (Priority: Low)
-1. Implement store/league CMS
-2. Add logo upload functionality
-3. Create announcement system
+1. ❌ Implement store/league CMS
+2. ❌ Add logo upload functionality
+3. ❌ Create announcement system
+4. ❌ Add external resource links
 
 ### Phase 5: Advanced Features (Priority: Low)
-1. Google Maps integration
-2. Advanced statistics and reporting
-3. Player search and filtering
+1. ❌ Google Maps integration
+2. ❌ Advanced statistics and reporting
+3. ❌ Player search and filtering
+4. ❌ Performance analytics
 
 ## Appendix
 - Wireframes: Not yet created

@@ -347,6 +347,12 @@ export default function LegsPage() {
       return
     }
 
+    // Check if we've reached the total_legs limit
+    if (legs.length >= selectedSeason.total_legs) {
+      toast.error(`Cannot create more legs. This season is limited to ${selectedSeason.total_legs} legs.`)
+      return
+    }
+
     // Check if there are any unsaved legs (legs without results)
     const unsavedLegs = legs.filter(leg => leg.status !== 'completed')
     if (unsavedLegs.length > 0) {
@@ -379,6 +385,9 @@ export default function LegsPage() {
       const nextRoundNumber = legs.length > 0 ? Math.max(...legs.map(leg => leg.round_number)) + 1 : 1
       setFormData({ name: '', round_number: nextRoundNumber })
       await loadLegs(selectedSeason.id)
+      
+      // Navigate to the newly created leg page
+      router.push(`/to/legs/${data.id}/results`)
     } catch (error) {
       console.error('Error creating leg:', error)
       toast.error('Failed to create leg')
@@ -551,13 +560,23 @@ export default function LegsPage() {
             Manage tournament legs for {store?.name}
           </p>
         </div>
-        <Button 
-          onClick={openCreateDialog} 
-          disabled={!selectedSeason || legs.some(leg => leg.status !== 'completed')}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Create Leg
-        </Button>
+        {selectedSeason && legs.length >= selectedSeason.total_legs ? (
+          <Button 
+            onClick={() => router.push(`/to/top8?season=${selectedSeason.id}`)}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            <Trophy className="mr-2 h-4 w-4" />
+            Top 8
+          </Button>
+        ) : (
+          <Button 
+            onClick={openCreateDialog} 
+            disabled={!selectedSeason || legs.some(leg => leg.status !== 'completed')}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create Leg
+          </Button>
+        )}
       </div>
 
       {/* Warning message for unsaved legs */}
@@ -687,15 +706,28 @@ export default function LegsPage() {
             <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No legs yet</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Create your first leg to start the tournament.
+              {selectedSeason && legs.length >= selectedSeason.total_legs 
+                ? 'All legs have been completed. Ready for Top 8!'
+                : 'Create your first leg to start the tournament.'
+              }
             </p>
-            <Button 
-              onClick={openCreateDialog}
-              disabled={legs.some(leg => leg.status !== 'completed')}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Your First Leg
-            </Button>
+            {selectedSeason && legs.length >= selectedSeason.total_legs ? (
+              <Button 
+                onClick={() => router.push(`/to/top8?season=${selectedSeason.id}`)}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <Trophy className="mr-2 h-4 w-4" />
+                Top 8
+              </Button>
+            ) : (
+              <Button 
+                onClick={openCreateDialog}
+                disabled={legs.some(leg => leg.status !== 'completed')}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Your First Leg
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (

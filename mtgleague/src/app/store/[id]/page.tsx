@@ -7,10 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Trophy, Store, MapPin, Users, Calendar, Loader2, RefreshCw } from 'lucide-react'
+import { Trophy, Store, MapPin, Users, Calendar, Loader2, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
-import { Moon, Sun } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 interface Store {
@@ -22,24 +21,41 @@ interface Store {
   created_at: string
 }
 
-interface Player {
+interface Season {
   id: string
   name: string
-  email?: string
+  total_legs: number
+  best_legs_count: number
+  status: 'active' | 'completed'
+  created_at: string
+  completed_at?: string
 }
 
-interface LeagueLeg {
+interface Leg {
   id: string
-  leg_number: number
-  date: string
-  status: 'upcoming' | 'active' | 'completed'
+  name: string
+  round_number: number
+  status: 'scheduled' | 'in_progress' | 'completed'
+  created_at: string
+  completed_at?: string
 }
 
-interface PlayerScore {
+interface PlayerStanding {
   player_id: string
-  leg_id: string
-  score: number | null
-  played: boolean
+  player_name: string
+  total_wins: number
+  total_draws: number
+  total_losses: number
+  total_points: number
+  legs_played: number
+  leg_scores: { [legId: string]: { wins: number; draws: number; losses: number; points: number; participated: boolean } }
+  best_leg_ids: string[]
+}
+
+interface SeasonData {
+  season: Season
+  legs: Leg[]
+  standings: PlayerStanding[]
 }
 
 export default function StoreDetailsPage() {
@@ -48,11 +64,11 @@ export default function StoreDetailsPage() {
   const storeId = params.id as string
 
   const [store, setStore] = useState<Store | null>(null)
-  const [players, setPlayers] = useState<Player[]>([])
-  const [legs, setLegs] = useState<LeagueLeg[]>([])
-  const [scores, setScores] = useState<PlayerScore[]>([])
+  const [seasons, setSeasons] = useState<Season[]>([])
+  const [seasonData, setSeasonData] = useState<{ [seasonId: string]: SeasonData }>({})
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [showPreviousSeasons, setShowPreviousSeasons] = useState(false)
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
@@ -78,8 +94,21 @@ export default function StoreDetailsPage() {
 
       setStore(storeData)
 
-      // Load current league data (mock data for now)
-      await loadLeagueData()
+      // Load seasons for this store
+      const { data: seasonsData, error: seasonsError } = await supabase
+        .from('seasons')
+        .select('*')
+        .eq('store_id', storeId)
+        .order('created_at', { ascending: false })
+
+      if (!seasonsError && seasonsData) {
+        setSeasons(seasonsData)
+        // Load data for all active seasons
+        const activeSeasons = seasonsData.filter(s => s.status === 'active')
+        for (const season of activeSeasons) {
+          await loadSeasonData(season.id)
+        }
+      }
 
     } catch (error) {
       console.error('Error loading store data:', error)
@@ -89,90 +118,237 @@ export default function StoreDetailsPage() {
     }
   }
 
-  const loadLeagueData = async () => {
-    // Mock data for demonstration
-    // In a real implementation, this would come from your database
-    const mockPlayers: Player[] = [
-      { id: '1', name: 'John Smith', email: 'john@example.com' },
-      { id: '2', name: 'Sarah Johnson', email: 'sarah@example.com' },
-      { id: '3', name: 'Mike Davis', email: 'mike@example.com' },
-      { id: '4', name: 'Emily Wilson', email: 'emily@example.com' },
-      { id: '5', name: 'David Brown', email: 'david@example.com' },
-    ]
+  const loadSeasonData = async (seasonId: string) => {
+    try {
+      // Load legs for this season
+      const { data: legsData, error: legsError } = await supabase
+        .from('legs')
+        .select('*')
+        .eq('season_id', seasonId)
+        .order('round_number', { ascending: true })
 
-    const mockLegs: LeagueLeg[] = [
-      { id: '1', leg_number: 1, date: '2024-01-15', status: 'completed' },
-      { id: '2', leg_number: 2, date: '2024-01-22', status: 'completed' },
-      { id: '3', leg_number: 3, date: '2024-01-29', status: 'completed' },
-      { id: '4', leg_number: 4, date: '2024-02-05', status: 'active' },
-      { id: '5', leg_number: 5, date: '2024-02-12', status: 'upcoming' },
-      { id: '6', leg_number: 6, date: '2024-02-19', status: 'upcoming' },
-    ]
+      if (legsError) {
+        console.error('Error loading legs:', legsError)
+        return
+      }
 
-    const mockScores: PlayerScore[] = [
-      // Leg 1 scores
-      { player_id: '1', leg_id: '1', score: 15, played: true },
-      { player_id: '2', leg_id: '1', score: 12, played: true },
-      { player_id: '3', leg_id: '1', score: 18, played: true },
-      { player_id: '4', leg_id: '1', score: 10, played: true },
-      { player_id: '5', leg_id: '1', score: null, played: false },
-      
-      // Leg 2 scores
-      { player_id: '1', leg_id: '2', score: 14, played: true },
-      { player_id: '2', leg_id: '2', score: 16, played: true },
-      { player_id: '3', leg_id: '2', score: 11, played: true },
-      { player_id: '4', leg_id: '2', score: null, played: false },
-      { player_id: '5', leg_id: '2', score: 13, played: true },
-      
-      // Leg 3 scores
-      { player_id: '1', leg_id: '3', score: 17, played: true },
-      { player_id: '2', leg_id: '3', score: 15, played: true },
-      { player_id: '3', leg_id: '3', score: 12, played: true },
-      { player_id: '4', leg_id: '3', score: 14, played: true },
-      { player_id: '5', leg_id: '3', score: 16, played: true },
-      
-      // Leg 4 scores (active)
-      { player_id: '1', leg_id: '4', score: 13, played: true },
-      { player_id: '2', leg_id: '4', score: null, played: false },
-      { player_id: '3', leg_id: '4', score: 15, played: true },
-      { player_id: '4', leg_id: '4', score: 11, played: true },
-      { player_id: '5', leg_id: '4', score: null, played: false },
-    ]
+      const legs = legsData || []
 
-    setPlayers(mockPlayers)
-    setLegs(mockLegs)
-    setScores(mockScores)
+      // Load standings for this season
+      const standings = await loadStandings(seasonId, legs)
+
+      // Update season data
+      const season = seasons.find(s => s.id === seasonId)
+      if (season) {
+        setSeasonData(prev => ({
+          ...prev,
+          [seasonId]: {
+            season,
+            legs,
+            standings
+          }
+        }))
+      }
+
+    } catch (error) {
+      console.error('Error loading season data:', error)
+      toast.error('Failed to load season data')
+    }
+  }
+
+  const loadStandings = async (seasonId: string, legsList: Leg[]): Promise<PlayerStanding[]> => {
+    try {
+      // Check if we have legs to query
+      if (legsList.length === 0) {
+        console.log('No legs found for season:', seasonId)
+        return []
+      }
+
+      // Filter to only completed legs since anonymous users can only access completed leg results
+      const completedLegs = legsList.filter(leg => leg.status === 'completed')
+      
+      if (completedLegs.length === 0) {
+        console.log('No completed legs found for season:', seasonId)
+        return []
+      }
+
+      console.log('Loading standings for season:', seasonId, 'with completed legs:', completedLegs.map(l => l.id))
+
+      // Get all players who have participated in any completed leg of this season
+      const { data: playerResults, error: resultsError } = await supabase
+        .from('leg_results')
+        .select(`
+          player_id,
+          player_name,
+          leg_id,
+          wins,
+          draws,
+          losses,
+          points,
+          participated
+        `)
+        .in('leg_id', completedLegs.map(leg => leg.id))
+
+      if (resultsError) {
+        console.error('Error loading player results:', resultsError)
+        console.error('Query details:', {
+          seasonId,
+          legIds: completedLegs.map(leg => leg.id),
+          error: resultsError
+        })
+        return []
+      }
+
+      console.log('Player results loaded:', playerResults?.length || 0, 'results')
+
+      // Group results by player
+      const playerMap = new Map<string, PlayerStanding>()
+
+      playerResults?.forEach(result => {
+        if (!playerMap.has(result.player_id)) {
+          playerMap.set(result.player_id, {
+            player_id: result.player_id,
+            player_name: result.player_name,
+            total_wins: 0,
+            total_draws: 0,
+            total_losses: 0,
+            total_points: 0,
+            legs_played: 0,
+            leg_scores: {},
+            best_leg_ids: []
+          })
+        }
+
+        const player = playerMap.get(result.player_id)!
+        player.leg_scores[result.leg_id] = {
+          wins: result.wins,
+          draws: result.draws,
+          losses: result.losses,
+          points: result.points,
+          participated: result.participated
+        }
+
+        if (result.participated) {
+          player.total_wins += result.wins
+          player.total_draws += result.draws
+          player.total_losses += result.losses
+          player.total_points += result.points
+          player.legs_played += 1
+        }
+      })
+
+      // Calculate best N results for each player
+      const season = seasons.find(s => s.id === seasonId)
+      if (season) {
+        playerMap.forEach(player => {
+          const { bestLegIds } = calculateBestNResults(player.leg_scores, season.best_legs_count)
+          player.best_leg_ids = bestLegIds
+        })
+      }
+
+      // Convert to array and sort by total points
+      const standingsArray = Array.from(playerMap.values())
+        .sort((a, b) => b.total_points - a.total_points)
+
+      console.log('Standings calculated:', standingsArray.length, 'players')
+      return standingsArray
+
+    } catch (error) {
+      console.error('Error loading standings:', error)
+      toast.error('Failed to load standings')
+      return []
+    }
+  }
+
+  const calculateBestNResults = (
+    legScores: { [legId: string]: { wins: number; draws: number; losses: number; points: number; participated: boolean } },
+    bestLegsCount: number
+  ): { bestLegIds: string[]; totalPoints: number; totalWins: number; totalDraws: number; totalLosses: number } => {
+    // Convert to array of { legId, points } and sort by points descending
+    const legResults = Object.entries(legScores)
+      .map(([legId, score]) => ({
+        legId,
+        points: score.participated ? score.points : 0,
+        participated: score.participated
+      }))
+      .sort((a, b) => b.points - a.points)
+
+    // Take the best N results
+    const bestResults = legResults.slice(0, bestLegsCount)
+    const bestLegIds = bestResults.map(result => result.legId)
+
+    // Calculate totals from best results
+    const totalPoints = bestResults.reduce((sum, result) => sum + result.points, 0)
+    
+    let totalWins = 0
+    let totalDraws = 0
+    let totalLosses = 0
+    
+    bestLegIds.forEach(legId => {
+      const score = legScores[legId]
+      if (score.participated) {
+        totalWins += score.wins || 0
+        totalDraws += score.draws || 0
+        totalLosses += score.losses || 0
+      }
+    })
+
+    return {
+      bestLegIds,
+      totalPoints,
+      totalWins,
+      totalDraws,
+      totalLosses
+    }
+  }
+
+  const getPlayerScoreForLeg = (playerId: string, legId: string, seasonId: string): string => {
+    const seasonDataItem = seasonData[seasonId]
+    if (!seasonDataItem) return '-'
+    
+    const standing = seasonDataItem.standings.find(s => s.player_id === playerId)
+    if (!standing || !standing.leg_scores[legId]) {
+      return '-'
+    }
+    const legScore = standing.leg_scores[legId]
+    if (!legScore.participated) {
+      return 'DNP'
+    }
+    return legScore.points.toString()
+  }
+
+  const isBestResult = (legId: string, bestLegIds: string[]): boolean => {
+    return bestLegIds.includes(legId)
   }
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await loadLeagueData()
+    await loadStoreData()
     setRefreshing(false)
     toast.success('Data refreshed')
-  }
-
-  const getPlayerScore = (playerId: string, legId: string): string => {
-    const score = scores.find(s => s.player_id === playerId && s.leg_id === legId)
-    if (!score || !score.played) return '-'
-    return score.score?.toString() || '-'
-  }
-
-  const getPlayerTotalScore = (playerId: string): number => {
-    return scores
-      .filter(s => s.player_id === playerId && s.played && s.score !== null)
-      .reduce((total, score) => total + (score.score || 0), 0)
   }
 
   const getLegStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
         return <Badge variant="outline" className="text-green-600">Completed</Badge>
-      case 'active':
-        return <Badge variant="default" className="bg-blue-600">Active</Badge>
-      case 'upcoming':
-        return <Badge variant="secondary">Upcoming</Badge>
+      case 'in_progress':
+        return <Badge variant="default" className="bg-blue-600">In Progress</Badge>
+      case 'scheduled':
+        return <Badge variant="secondary">Scheduled</Badge>
       default:
         return <Badge variant="outline">Unknown</Badge>
+    }
+  }
+
+  const getSeasonStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge variant="default" className="bg-green-600">Active</Badge>
+      case 'completed':
+        return <Badge variant="outline" className="text-green-600">Completed</Badge>
+      default:
+        return <Badge variant="secondary">Unknown</Badge>
     }
   }
 
@@ -180,6 +356,9 @@ export default function StoreDetailsPage() {
     localStorage.removeItem('selectedStoreId')
     router.push('/')
   }
+
+  const activeSeasons = seasons.filter(s => s.status === 'active')
+  const completedSeasons = seasons.filter(s => s.status === 'completed')
 
   if (loading) {
     return (
@@ -284,93 +463,196 @@ export default function StoreDetailsPage() {
             </CardContent>
           </Card>
 
-          {/* Current League Standings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Trophy className="h-5 w-5" />
-                <span>Current League Standings</span>
-              </CardTitle>
-              <CardDescription>
-                League progress and player scores across all legs
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {legs.length === 0 ? (
-                <div className="text-center py-8">
-                  <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 dark:text-gray-400">No league data available</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-48">Player</TableHead>
-                        {legs.map((leg) => (
-                          <TableHead key={leg.id} className="text-center">
-                            <div className="space-y-1">
-                              <div className="font-medium">Leg {leg.leg_number}</div>
-                              <div className="text-xs text-gray-500">
-                                {new Date(leg.date).toLocaleDateString()}
-                              </div>
-                              {getLegStatusBadge(leg.status)}
-                            </div>
-                          </TableHead>
-                        ))}
-                        <TableHead className="text-center font-bold">Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {players.map((player) => (
-                        <TableRow key={player.id}>
-                          <TableCell className="font-medium">
-                            {player.name}
-                          </TableCell>
-                          {legs.map((leg) => (
-                            <TableCell key={leg.id} className="text-center">
-                              {getPlayerScore(player.id, leg.id)}
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-center font-bold">
-                            {getPlayerTotalScore(player.id)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Active Seasons Standings */}
+          {activeSeasons.length > 0 && (
+            <div className="space-y-8">
+              {activeSeasons.map((season) => {
+                const seasonDataItem = seasonData[season.id]
+                if (!seasonDataItem) return null
+                
+                const { legs, standings } = seasonDataItem
+                const completedLegs = legs.filter(leg => leg.status === 'completed')
+                
+                return (
+                  <Card key={season.id}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Trophy className="h-5 w-5" />
+                        <span>{season.name} - Standings</span>
+                        {getSeasonStatusBadge(season.status)}
+                      </CardTitle>
+                      <CardDescription>
+                        Best {season.best_legs_count} results from completed legs
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {legs.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 dark:text-gray-400">No legs available for this season</p>
+                        </div>
+                      ) : standings.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 dark:text-gray-400">No completed legs yet</p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-48">Player</TableHead>
+                                {completedLegs.map((leg) => (
+                                  <TableHead key={leg.id} className="text-center">
+                                    <div className="space-y-1">
+                                      <div className="font-medium">{leg.name}</div>
+                                      <div className="text-xs text-gray-500">
+                                        Round {leg.round_number}
+                                      </div>
+                                      {getLegStatusBadge(leg.status)}
+                                    </div>
+                                  </TableHead>
+                                ))}
+                                <TableHead className="text-center font-bold">Total</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {standings.map((standing, index) => (
+                                <TableRow key={standing.player_id}>
+                                  <TableCell className="font-medium">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-sm text-gray-500">#{index + 1}</span>
+                                      <span>{standing.player_name}</span>
+                                    </div>
+                                  </TableCell>
+                                  {completedLegs.map((leg) => (
+                                    <TableCell 
+                                      key={leg.id} 
+                                      className={`text-center text-sm ${
+                                        isBestResult(leg.id, standing.best_leg_ids) 
+                                          ? 'bg-green-50 dark:bg-green-900/20 font-semibold text-green-700 dark:text-green-300' 
+                                          : ''
+                                      }`}
+                                    >
+                                      {getPlayerScoreForLeg(standing.player_id, leg.id, season.id)}
+                                    </TableCell>
+                                  ))}
+                                  <TableCell className="text-center font-bold">
+                                    <div className="space-y-1">
+                                      <div>{standing.total_points} pts</div>
+                                      <div className="text-xs text-gray-500">
+                                        {standing.legs_played} legs
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
 
-          {/* League Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>League Information</CardTitle>
-              <CardDescription>
-                Details about the current league format and rules
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{legs.length}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Total Legs</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{players.length}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Active Players</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {legs.filter(leg => leg.status === 'completed').length}
+          {/* Previous Seasons */}
+          {completedSeasons.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle 
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setShowPreviousSeasons(!showPreviousSeasons)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="h-5 w-5" />
+                    <span>Previous Seasons</span>
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Completed Legs</div>
+                  {showPreviousSeasons ? (
+                    <ChevronUp className="h-5 w-5" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5" />
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  View completed seasons and their final standings
+                </CardDescription>
+              </CardHeader>
+              {showPreviousSeasons && (
+                <CardContent>
+                  <div className="space-y-4">
+                    {completedSeasons.map((season) => (
+                      <Card key={season.id} className="border-l-4 border-l-green-500">
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="text-lg font-semibold">{season.name}</h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Completed {season.completed_at ? new Date(season.completed_at).toLocaleDateString() : 'Unknown'}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                {season.total_legs} legs • Best {season.best_legs_count}
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <Button 
+                            variant="outline" 
+                            onClick={async () => {
+                              await loadSeasonData(season.id)
+                              setShowPreviousSeasons(false)
+                            }}
+                            className="w-full"
+                          >
+                            View Standings
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
+
+          {/* Season Information */}
+          {activeSeasons.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Active Seasons Information</CardTitle>
+                <CardDescription>
+                  Overview of all active seasons
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{activeSeasons.length}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Active Seasons</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {Object.values(seasonData).reduce((total, data) => total + data.standings.length, 0)}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Total Players</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {Object.values(seasonData).reduce((total, data) => 
+                        total + data.legs.filter(leg => leg.status === 'completed').length, 0
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Completed Legs</div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
     </div>

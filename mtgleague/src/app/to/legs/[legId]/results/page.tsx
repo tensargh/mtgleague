@@ -47,7 +47,6 @@ interface PlayerResult {
   losses: number
   points: number
   participated: boolean
-  is_new_player?: boolean
 }
 
 export default function LegResultsPage() {
@@ -285,7 +284,7 @@ export default function LegResultsPage() {
     }))
   }
 
-  const handleAddPlayer = () => {
+  const handleAddPlayer = async () => {
     if (addPlayerMode === 'select' && selectedPlayerId) {
       const selectedPlayer = allStorePlayers.find(p => p.id === selectedPlayerId)
       if (selectedPlayer) {
@@ -303,20 +302,52 @@ export default function LegResultsPage() {
         setSelectedPlayerId('')
       }
     } else if (addPlayerMode === 'new' && newPlayerName.trim()) {
-      // Add new player to results (will be saved to store when leg is saved)
-      const tempId = `new_${Date.now()}`
-      setPlayerResults(prev => [...prev, {
-        player_id: tempId,
-        player_name: newPlayerName.trim(),
-        wins: 0,
-        draws: 0,
-        losses: 0,
-        points: 0,
-        participated: true,
-        is_new_player: true
-      }])
-      setShowAddPlayer(false)
-      setNewPlayerName('')
+      // Save new player to store immediately
+      try {
+        const { data: newPlayer, error } = await supabase
+          .from('players')
+          .insert({
+            name: newPlayerName.trim(),
+            store_id: store!.id
+          })
+          .select()
+          .single()
+
+        if (error) {
+          console.error('Error saving new player:', error)
+          toast.error('Failed to save new player: ' + error.message)
+          return
+        }
+
+        // Add new player to results
+        setPlayerResults(prev => [...prev, {
+          player_id: newPlayer.id,
+          player_name: newPlayer.name,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          points: 0,
+          participated: true
+        }])
+
+        // Refresh the store players list
+        const { data: updatedPlayers } = await supabase
+          .from('players')
+          .select('*')
+          .eq('store_id', store!.id)
+          .order('name')
+
+        if (updatedPlayers) {
+          setAllStorePlayers(updatedPlayers)
+        }
+
+        setShowAddPlayer(false)
+        setNewPlayerName('')
+        toast.success(`Player "${newPlayer.name}" added successfully!`)
+      } catch (error) {
+        console.error('Error saving new player:', error)
+        toast.error('Failed to save new player')
+      }
     }
   }
 
@@ -333,37 +364,41 @@ export default function LegResultsPage() {
   }
 
   const handleSave = async () => {
+    console.log('Starting save process...')
+    
+    // Validate that we have results to save
+    if (playerResults.length === 0) {
+      toast.error('No player results to save')
+      return
+    }
+
+    // Validate that at least one player participated
+    const participatingPlayers = playerResults.filter(result => result.participated)
+    if (participatingPlayers.length === 0) {
+      toast.error('At least one player must participate in the leg')
+      return
+    }
+
+    // Check if leg is already completed
+    if (leg?.status === 'completed') {
+      toast.error('This leg is already completed')
+      return
+    }
+
     setSaving(true)
 
+    // Add a timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      console.error('Save operation timed out')
+      toast.error('Save operation timed out. Please try again.')
+      setSaving(false)
+    }, 30000) // 30 second timeout
+
     try {
-      // First, create any new players
-      const newPlayers = playerResults.filter(result => result.is_new_player)
-      const newPlayerIds: { [tempId: string]: string } = {}
-
-      for (const newPlayer of newPlayers) {
-        const { data: createdPlayer, error } = await supabase
-          .from('players')
-          .insert({
-            store_id: store!.id,
-            name: newPlayer.player_name,
-            visibility: 'public'
-          })
-          .select()
-          .single()
-
-        if (error) {
-          console.error('Error creating new player:', error)
-          toast.error(`Failed to create player ${newPlayer.player_name}`)
-          return
-        }
-
-        newPlayerIds[newPlayer.player_id] = createdPlayer.id
-      }
-
-      // Prepare data for upsert, replacing temp IDs with real IDs
+      // Prepare data for the transaction (no need to handle new players anymore)
       const resultsToSave = playerResults.map(result => ({
-        leg_id: legId,
-        player_id: result.is_new_player ? newPlayerIds[result.player_id] : result.player_id,
+        player_id: result.player_id,
+        player_name: result.player_name,
         wins: result.participated ? result.wins : 0,
         draws: result.participated ? result.draws : 0,
         losses: result.participated ? result.losses : 0,
@@ -371,39 +406,38 @@ export default function LegResultsPage() {
         participated: result.participated
       }))
 
-      // Upsert all results
-      const { error: upsertError } = await supabase
-        .from('leg_results')
-        .upsert(resultsToSave, { onConflict: 'leg_id,player_id' })
+      console.log('Saving results via transaction:', resultsToSave.length, 'results')
 
-      if (upsertError) {
-        console.error('Error saving results:', upsertError)
-        toast.error('Failed to save results')
+      // Call the transaction-based function
+      const { data, error } = await supabase.rpc('save_leg_results_transaction', {
+        p_leg_id: legId,
+        p_results: resultsToSave
+      })
+
+      if (error) {
+        console.error('Error saving results via transaction:', error)
+        
+        // Check if it's a network error and suggest retry
+        if (error.message?.includes('network') || error.message?.includes('timeout')) {
+          toast.error('Network error. Please check your connection and try again.')
+        } else {
+          toast.error('Failed to save results: ' + error.message)
+        }
+        
+        clearTimeout(timeoutId)
+        setSaving(false)
         return
       }
 
-      // Update leg status to completed
-      const { error: updateError } = await supabase
-        .from('legs')
-        .update({ 
-          status: 'completed',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', legId)
-
-      if (updateError) {
-        console.error('Error updating leg status:', updateError)
-        toast.error('Failed to update leg status')
-        return
-      }
-
+      console.log('Transaction completed successfully:', data)
+      clearTimeout(timeoutId)
       toast.success('Leg results saved successfully!')
       router.push('/to/legs')
 
     } catch (error) {
       console.error('Error saving results:', error)
       toast.error('Failed to save results')
-    } finally {
+      clearTimeout(timeoutId)
       setSaving(false)
     }
   }
@@ -515,11 +549,6 @@ export default function LegResultsPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-semibold">{result.player_name}</h3>
-                    {result.is_new_player && (
-                      <Badge variant="secondary" className="text-xs">
-                        New Player
-                      </Badge>
-                    )}
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -551,6 +580,7 @@ export default function LegResultsPage() {
                         id={`wins-${result.player_id}`}
                         type="number"
                         min="0"
+                        max="9"
                         value={result.wins}
                         onChange={(e) => handleResultChange(result.player_id, 'wins', parseInt(e.target.value) || 0)}
                         className="w-20 h-12 text-center text-xl font-semibold"
@@ -562,6 +592,7 @@ export default function LegResultsPage() {
                         id={`draws-${result.player_id}`}
                         type="number"
                         min="0"
+                        max="9"
                         value={result.draws}
                         onChange={(e) => handleResultChange(result.player_id, 'draws', parseInt(e.target.value) || 0)}
                         className="w-20 h-12 text-center text-xl font-semibold"
@@ -573,6 +604,7 @@ export default function LegResultsPage() {
                         id={`losses-${result.player_id}`}
                         type="number"
                         min="0"
+                        max="9"
                         value={result.losses}
                         onChange={(e) => handleResultChange(result.player_id, 'losses', parseInt(e.target.value) || 0)}
                         className="w-20 h-12 text-center text-xl font-semibold"

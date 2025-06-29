@@ -29,14 +29,25 @@
 - Include clear comments explaining what each migration does
 - Test migrations in development before applying to production
 
+## Database Transaction Rules
+- **CRITICAL**: Any operation requiring multiple database inserts/updates MUST use transactions
+- For complex multi-step operations, create Supabase RPC functions in migrations
+- NEVER use multiple separate database calls for related operations
+- Always implement atomic operations that either succeed completely or rollback entirely
+- Use the pattern established in `migrations/010-add-leg-results-transaction.sql` as a template
+- Example: Leg results saving, user creation with invites, season management with legs
+
 ## Common Mistakes to Avoid
 - ❌ Installing packages at root level
 - ❌ Creating files outside `mtgleague/src/`
 - ❌ Running npm commands from root directory
 - ❌ Creating migrations outside `/migrations/` folder
 - ❌ Using non-sequential migration numbers
+- ❌ Multiple separate database calls for related operations
+- ❌ Not using transactions for multi-step operations
 - ✅ Always work within `mtgleague/` subdirectory
 - ✅ Always use `/migrations/` for database changes
+- ✅ Always use transactions for multi-step database operations
 
 ## File Organization
 - `docs/`: Project documentation, PRDs, setup guides
