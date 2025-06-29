@@ -34,6 +34,9 @@ export default function PlayersPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [showDeletedPlayers, setShowDeletedPlayers] = useState(false)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
+  const [playerToRestore, setPlayerToRestore] = useState<Player | null>(null)
+  const [newPlayerName, setNewPlayerName] = useState('')
   const [formData, setFormData] = useState({
     name: ''
   })
@@ -167,10 +170,25 @@ export default function PlayersPage() {
     }
   }
 
-  const handleRestorePlayer = async (playerId: string, playerName: string) => {
+  const openRestoreDialog = (player: Player) => {
+    setPlayerToRestore(player)
+    setNewPlayerName('')
+    setRestoreDialogOpen(true)
+  }
+
+  const handleRestoreConfirm = async () => {
+    if (!playerToRestore || !newPlayerName.trim()) {
+      toast.error('Please enter a valid name')
+      return
+    }
+
+    setSubmitting(true)
     try {
       const { error } = await supabase
-        .rpc('restore_player', { player_id: playerId })
+        .rpc('restore_player', { 
+          player_id: playerToRestore.id,
+          new_name: newPlayerName.trim()
+        })
 
       if (error) {
         console.error('Error restoring player:', error)
@@ -178,11 +196,16 @@ export default function PlayersPage() {
         return
       }
 
-      toast.success(`${playerName} restored successfully!`)
+      toast.success(`${newPlayerName} restored successfully!`)
+      setRestoreDialogOpen(false)
+      setPlayerToRestore(null)
+      setNewPlayerName('')
       loadData() // Refresh the list
     } catch (error) {
       console.error('Error restoring player:', error)
       toast.error('Failed to restore player')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -281,7 +304,6 @@ export default function PlayersPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {playersToShow.map((player) => {
               const isDeleted = !!player.deleted_at
-              const displayName = isDeleted ? "Deleted Player" : player.name
               
               return (
                 <Card 
@@ -292,7 +314,7 @@ export default function PlayersPage() {
                 >
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center justify-between">
-                      <span>{displayName}</span>
+                      <span>{player.name}</span>
                       {!isDeleted && (
                         <Button
                           variant="ghost"
@@ -332,7 +354,7 @@ export default function PlayersPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleRestorePlayer(player.id, player.name)}
+                          onClick={() => openRestoreDialog(player)}
                           className="text-green-600 hover:text-green-700"
                         >
                           <RotateCcw className="mr-2 h-4 w-4" />
@@ -395,6 +417,50 @@ export default function PlayersPage() {
                   </>
                 ) : (
                   'Add Player'
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Restore Dialog */}
+      <Dialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Restore Player</DialogTitle>
+            <DialogDescription>
+              Enter a new name for the player.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); handleRestoreConfirm(); }} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-name">New Name</Label>
+              <Input
+                id="new-name"
+                value={newPlayerName}
+                onChange={(e) => setNewPlayerName(e.target.value)}
+                placeholder="Enter new name"
+                required
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setRestoreDialogOpen(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Restoring...
+                  </>
+                ) : (
+                  'Restore Player'
                 )}
               </Button>
             </div>

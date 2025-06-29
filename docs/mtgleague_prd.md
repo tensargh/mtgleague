@@ -32,6 +32,10 @@
 - ✅ **Soft delete functionality** - replace name with "Deleted Player" instead of hard delete
 - ✅ **Player visibility UI controls** - checkbox to toggle public/private visibility
 - ✅ **Anonymous display logic** - show "Anonymous" for private players on public pages
+- ✅ **Enhanced soft delete** - player name physically changed to "Deleted Player" in database
+- ✅ **No private data retention** - deleted players have generic names and public visibility
+- ✅ **Results preservation** - deleted players' results remain visible in all standings
+- ✅ **Restore with new name** - restored players get a new name since original is not stored
 
 #### Results Tracking
 - ✅ Match results entry for each leg
@@ -196,7 +200,6 @@ The store details page should display information in the following order:
 2. **Past Seasons Viewing** - Implement the "Find a past season" functionality
 3. **Tiebreaker Calculations** - Implement proper tiebreaker logic for standings
 4. **Data Validation** - Add validation for leg results and player data
-5. **Player Management Improvements** - Soft delete, visibility controls, and anonymous display
 
 ### MEDIUM PRIORITY
 1. **Email Notifications** - Notify players when leg results are posted

@@ -333,6 +333,7 @@ export default function StoreDetailsPage() {
 
   const getPlayerDisplayName = (playerName: string, visibility: 'public' | 'private'): string => {
     // For anonymous users, show "Anonymous" for private players
+    // Deleted players already have "Deleted Player" as their name in the database
     return visibility === 'private' ? 'Anonymous' : playerName
   }
 
