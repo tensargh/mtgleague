@@ -562,7 +562,7 @@ export default function LegsPage() {
         </div>
         {selectedSeason && legs.length >= selectedSeason.total_legs ? (
           <Button 
-            onClick={() => router.push(`/to/top8?season=${selectedSeason.id}`)}
+            onClick={() => router.push(`/to/seasons/${selectedSeason.id}/top8`)}
             className="bg-purple-600 hover:bg-purple-700"
           >
             <Trophy className="mr-2 h-4 w-4" />
@@ -713,7 +713,7 @@ export default function LegsPage() {
             </p>
             {selectedSeason && legs.length >= selectedSeason.total_legs ? (
               <Button 
-                onClick={() => router.push(`/to/top8?season=${selectedSeason.id}`)}
+                onClick={() => router.push(`/to/seasons/${selectedSeason.id}/top8`)}
                 className="bg-purple-600 hover:bg-purple-700"
               >
                 <Trophy className="mr-2 h-4 w-4" />

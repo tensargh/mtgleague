@@ -226,7 +226,7 @@ export default function SeasonsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {seasons.map((season) => (
-            <Card key={season.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push(`/to/legs?season=${season.id}`)}>
+            <Card key={season.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{season.name}</CardTitle>
@@ -251,9 +251,27 @@ export default function SeasonsPage() {
                     <span className="font-medium capitalize">{season.status}</span>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t">
-                  <Button variant="outline" className="w-full">
+                <div className="mt-4 pt-4 border-t space-y-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/to/legs?season=${season.id}`)
+                    }}
+                  >
                     Manage Legs
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/to/seasons/${season.id}/top8`)
+                    }}
+                  >
+                    <Trophy className="mr-2 h-4 w-4" />
+                    Top 8 Tournament
                   </Button>
                 </div>
               </CardContent>

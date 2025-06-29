@@ -28,6 +28,7 @@ MtgLeague enables Tournament Organisers to create and manage Pauper league seaso
 
 - **[Product Requirements Document](docs/mtgleague_prd.md)** - Detailed feature specifications and data model
 - **[Tech Stack Guide](docs/tech_stack.md)** - Technology choices and getting started instructions
+- **[Migration Guidelines](docs/migration-guidelines.md)** - Database migration best practices and rules
 
 ## Getting Started
 

@@ -196,10 +196,9 @@ The store details page should display information in the following order:
 ## Next Priority Items
 
 ### HIGH PRIORITY
-1. **Season Completion System** - Allow TOs to mark seasons as completed
-2. **Past Seasons Viewing** - Implement the "Find a past season" functionality
-3. **Tiebreaker Calculations** - Implement proper tiebreaker logic for standings
-4. **Data Validation** - Add validation for leg results and player data
+1. **Past Seasons Viewing** - Implement the "Find a past season" functionality
+2. **Tiebreaker Calculations** - Implement proper tiebreaker logic for standings
+3. **Data Validation** - Add validation for leg results and player data
 
 ### MEDIUM PRIORITY
 1. **Email Notifications** - Notify players when leg results are posted

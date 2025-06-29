@@ -70,6 +70,28 @@ interface LegResultWithPlayer {
   participated: boolean
 }
 
+interface Top8 {
+  id: string
+  season_id: string
+  status: 'pending' | 'in_progress' | 'completed'
+  created_at: string
+  completed_at?: string
+}
+
+interface Top8Match {
+  id: string
+  top8_id: string
+  player1_id?: string
+  player2_id?: string
+  round: 'qf' | 'sf' | 'final'
+  result?: '2-0' | '2-1' | '1-2' | '0-2'
+  winner_id?: string
+  ordinal: number
+  player1?: { name: string; visibility: 'public' | 'private' }
+  player2?: { name: string; visibility: 'public' | 'private' }
+  winner?: { name: string; visibility: 'public' | 'private' }
+}
+
 export default function StoreDetailsPage() {
   const router = useRouter()
   const params = useParams()
@@ -78,6 +100,7 @@ export default function StoreDetailsPage() {
   const [store, setStore] = useState<Store | null>(null)
   const [seasons, setSeasons] = useState<Season[]>([])
   const [seasonData, setSeasonData] = useState<{ [seasonId: string]: SeasonData }>({})
+  const [top8Data, setTop8Data] = useState<{ [seasonId: string]: { top8: Top8; matches: Top8Match[] } }>({})
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [showPreviousSeasons, setShowPreviousSeasons] = useState(false)
@@ -177,6 +200,66 @@ export default function StoreDetailsPage() {
         console.log('New seasonData state:', Object.keys(newData))
         return newData
       })
+
+      // Load Top 8 data for completed seasons
+      if (season.status === 'completed') {
+        const { data: top8Data, error: top8Error } = await supabase
+          .from('top8s')
+          .select('*')
+          .eq('season_id', seasonId)
+          .eq('status', 'completed')
+          .single()
+
+        if (!top8Error && top8Data) {
+          // Load Top 8 matches
+          const { data: matchesData, error: matchesError } = await supabase
+            .from('top8_matches')
+            .select('*')
+            .eq('top8_id', top8Data.id)
+            .order('round', { ascending: true })
+            .order('ordinal', { ascending: true })
+
+          if (!matchesError && matchesData) {
+            // Load player data separately to avoid foreign key issues
+            const playerIds = new Set<string>()
+            matchesData.forEach(match => {
+              if (match.player1_id) playerIds.add(match.player1_id)
+              if (match.player2_id) playerIds.add(match.player2_id)
+              if (match.winner_id) playerIds.add(match.winner_id)
+            })
+
+            let playersData: { [key: string]: { name: string; visibility: 'public' | 'private' } } = {}
+            if (playerIds.size > 0) {
+              const { data: players, error: playersError } = await supabase
+                .from('players')
+                .select('id, name, visibility')
+                .in('id', Array.from(playerIds))
+
+              if (!playersError && players) {
+                players.forEach(player => {
+                  playersData[player.id] = { name: player.name, visibility: player.visibility }
+                })
+              }
+            }
+
+            // Combine matches with player data
+            const matchesWithPlayers = matchesData.map(match => ({
+              ...match,
+              player1: match.player1_id ? playersData[match.player1_id] : null,
+              player2: match.player2_id ? playersData[match.player2_id] : null,
+              winner: match.winner_id ? playersData[match.winner_id] : null,
+            }))
+
+            setTop8Data(prev => ({
+              ...prev,
+              [seasonId]: {
+                top8: top8Data,
+                matches: matchesWithPlayers
+              }
+            }))
+          }
+        }
+      }
 
     } catch (error) {
       console.error('Error loading season data:', error)
@@ -657,7 +740,7 @@ export default function StoreDetailsPage() {
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Button onClick={() => router.push(`/to/seasons/${season.id}`)} variant="outline">
+                          <Button onClick={() => router.push(`/public/season/${season.id}/standings`)} variant="outline">
                             View Standings
                           </Button>
                         </CardContent>
@@ -667,6 +750,161 @@ export default function StoreDetailsPage() {
                 </CardContent>
               )}
             </Card>
+          )}
+
+          {/* Completed Seasons with Top 8 */}
+          {completedSeasons.length > 0 && (
+            <div className="space-y-8">
+              {completedSeasons.map((season) => {
+                const seasonDataItem = seasonData[season.id]
+                const top8Item = top8Data[season.id]
+                
+                return (
+                  <Card key={season.id}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Trophy className="h-5 w-5" />
+                        <span>{season.name} - Final Results</span>
+                        {getSeasonStatusBadge(season.status)}
+                      </CardTitle>
+                      <CardDescription>
+                        Completed season with final standings and tournament results
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {seasonDataItem ? (
+                        <div className="space-y-6">
+                          {/* Final Standings */}
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4">Final Standings</h3>
+                            <div className="overflow-x-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-48">Player</TableHead>
+                                    <TableHead className="text-center">Total Points</TableHead>
+                                    <TableHead className="text-center">W/D/L</TableHead>
+                                    <TableHead className="text-center">Legs Played</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {seasonDataItem.standings.map((standing, index) => (
+                                    <TableRow key={standing.player_id}>
+                                      <TableCell className="font-medium">
+                                        <div className="flex items-center space-x-2">
+                                          <span className="text-sm text-gray-500">#{index + 1}</span>
+                                          <span>{getPlayerDisplayName(standing.player_name, standing.player_visibility)}</span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-center font-bold">{standing.total_points}</TableCell>
+                                      <TableCell className="text-center">
+                                        {standing.total_wins}/{standing.total_draws}/{standing.total_losses}
+                                      </TableCell>
+                                      <TableCell className="text-center">{standing.legs_played}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+
+                          {/* Top 8 Tournament Results */}
+                          {top8Item && (
+                            <div>
+                              <h3 className="text-lg font-semibold mb-4">Top 8 Tournament</h3>
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Quarter Finals */}
+                                <div>
+                                  <h4 className="font-medium mb-3">Quarter Finals</h4>
+                                  <div className="space-y-2">
+                                    {top8Item.matches.filter(m => m.round === 'qf').map((match) => (
+                                      <div key={match.id} className="p-3 border rounded-lg">
+                                        <div className="text-sm">
+                                          <div className="flex justify-between">
+                                            <span>{getPlayerDisplayName(match.player1?.name || '', match.player1?.visibility || 'public')}</span>
+                                            <span className="font-medium">{match.result?.split('-')[0]}</span>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span>{getPlayerDisplayName(match.player2?.name || '', match.player2?.visibility || 'public')}</span>
+                                            <span className="font-medium">{match.result?.split('-')[1]}</span>
+                                          </div>
+                                          {match.winner && (
+                                            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                              Winner: {getPlayerDisplayName(match.winner.name, match.winner.visibility)}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Semi Finals */}
+                                <div>
+                                  <h4 className="font-medium mb-3">Semi Finals</h4>
+                                  <div className="space-y-2">
+                                    {top8Item.matches.filter(m => m.round === 'sf').map((match) => (
+                                      <div key={match.id} className="p-3 border rounded-lg">
+                                        <div className="text-sm">
+                                          <div className="flex justify-between">
+                                            <span>{getPlayerDisplayName(match.player1?.name || '', match.player1?.visibility || 'public')}</span>
+                                            <span className="font-medium">{match.result?.split('-')[0]}</span>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span>{getPlayerDisplayName(match.player2?.name || '', match.player2?.visibility || 'public')}</span>
+                                            <span className="font-medium">{match.result?.split('-')[1]}</span>
+                                          </div>
+                                          {match.winner && (
+                                            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                              Winner: {getPlayerDisplayName(match.winner.name, match.winner.visibility)}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Final */}
+                                <div>
+                                  <h4 className="font-medium mb-3">Championship</h4>
+                                  <div className="space-y-2">
+                                    {top8Item.matches.filter(m => m.round === 'final').map((match) => (
+                                      <div key={match.id} className="p-3 border rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+                                        <div className="text-sm">
+                                          <div className="flex justify-between">
+                                            <span>{getPlayerDisplayName(match.player1?.name || '', match.player1?.visibility || 'public')}</span>
+                                            <span className="font-medium">{match.result?.split('-')[0]}</span>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span>{getPlayerDisplayName(match.player2?.name || '', match.player2?.visibility || 'public')}</span>
+                                            <span className="font-medium">{match.result?.split('-')[1]}</span>
+                                          </div>
+                                          {match.winner && (
+                                            <div className="text-xs text-green-600 dark:text-green-400 mt-1 font-bold">
+                                              🏆 Champion: {getPlayerDisplayName(match.winner.name, match.winner.visibility)}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 dark:text-gray-400">Loading season data...</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
           )}
         </div>
       </main>
