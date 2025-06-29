@@ -43,6 +43,7 @@ interface Leg {
 interface PlayerStanding {
   player_id: string
   player_name: string
+  player_visibility: 'public' | 'private'
   total_wins: number
   total_draws: number
   total_losses: number
@@ -56,6 +57,17 @@ interface SeasonData {
   season: Season
   legs: Leg[]
   standings: PlayerStanding[]
+}
+
+interface LegResultWithPlayer {
+  player_id: string
+  players: { name: string; visibility: 'public' | 'private' }
+  leg_id: string
+  wins: number
+  draws: number
+  losses: number
+  points: number
+  participated: boolean
 }
 
 export default function StoreDetailsPage() {
@@ -101,13 +113,23 @@ export default function StoreDetailsPage() {
         .eq('store_id', storeId)
         .order('created_at', { ascending: false })
 
+      console.log('Seasons query result:', { seasonsData, seasonsError, storeId })
+
       if (!seasonsError && seasonsData) {
+        console.log('All seasons loaded:', seasonsData.length, 'seasons')
+        console.log('Seasons data:', seasonsData)
+        
         setSeasons(seasonsData)
         // Load data for all active seasons
         const activeSeasons = seasonsData.filter(s => s.status === 'active')
+        console.log('Active seasons filtered:', activeSeasons.length, 'active seasons')
+        console.log('Active seasons data:', activeSeasons)
+        
         for (const season of activeSeasons) {
-          await loadSeasonData(season.id)
+          await loadSeasonData(season.id, season)
         }
+      } else {
+        console.error('Error loading seasons:', seasonsError)
       }
 
     } catch (error) {
@@ -118,8 +140,10 @@ export default function StoreDetailsPage() {
     }
   }
 
-  const loadSeasonData = async (seasonId: string) => {
+  const loadSeasonData = async (seasonId: string, season: Season) => {
     try {
+      console.log('Loading season data for:', seasonId)
+      
       // Load legs for this season
       const { data: legsData, error: legsError } = await supabase
         .from('legs')
@@ -133,22 +157,26 @@ export default function StoreDetailsPage() {
       }
 
       const legs = legsData || []
+      console.log('Legs loaded for season:', seasonId, legs.length, 'legs')
 
       // Load standings for this season
       const standings = await loadStandings(seasonId, legs)
+      console.log('Standings loaded for season:', seasonId, standings.length, 'players')
 
       // Update season data
-      const season = seasons.find(s => s.id === seasonId)
-      if (season) {
-        setSeasonData(prev => ({
+      console.log('Updating seasonData for:', seasonId, { season, legs, standings })
+      setSeasonData(prev => {
+        const newData = {
           ...prev,
           [seasonId]: {
             season,
             legs,
             standings
           }
-        }))
-      }
+        }
+        console.log('New seasonData state:', Object.keys(newData))
+        return newData
+      })
 
     } catch (error) {
       console.error('Error loading season data:', error)
@@ -179,7 +207,7 @@ export default function StoreDetailsPage() {
         .from('leg_results')
         .select(`
           player_id,
-          player_name,
+          players!inner(name, visibility),
           leg_id,
           wins,
           draws,
@@ -187,7 +215,7 @@ export default function StoreDetailsPage() {
           points,
           participated
         `)
-        .in('leg_id', completedLegs.map(leg => leg.id))
+        .in('leg_id', completedLegs.map(leg => leg.id)) as { data: LegResultWithPlayer[] | null, error: any }
 
       if (resultsError) {
         console.error('Error loading player results:', resultsError)
@@ -208,7 +236,8 @@ export default function StoreDetailsPage() {
         if (!playerMap.has(result.player_id)) {
           playerMap.set(result.player_id, {
             player_id: result.player_id,
-            player_name: result.player_name,
+            player_name: result.players.name,
+            player_visibility: result.players.visibility,
             total_wins: 0,
             total_draws: 0,
             total_losses: 0,
@@ -302,6 +331,11 @@ export default function StoreDetailsPage() {
     }
   }
 
+  const getPlayerDisplayName = (playerName: string, visibility: 'public' | 'private'): string => {
+    // For anonymous users, show "Anonymous" for private players
+    return visibility === 'private' ? 'Anonymous' : playerName
+  }
+
   const getPlayerScoreForLeg = (playerId: string, legId: string, seasonId: string): string => {
     const seasonDataItem = seasonData[seasonId]
     if (!seasonDataItem) return '-'
@@ -359,6 +393,13 @@ export default function StoreDetailsPage() {
 
   const activeSeasons = seasons.filter(s => s.status === 'active')
   const completedSeasons = seasons.filter(s => s.status === 'completed')
+
+  console.log('Seasons breakdown:', {
+    total: seasons.length,
+    active: activeSeasons.length,
+    completed: completedSeasons.length,
+    allSeasons: seasons.map(s => ({ id: s.id, name: s.name, status: s.status }))
+  })
 
   if (loading) {
     return (
@@ -463,16 +504,36 @@ export default function StoreDetailsPage() {
             </CardContent>
           </Card>
 
-          {/* Active Seasons Standings */}
+          {/* Active Seasons - each in its own container */}
           {activeSeasons.length > 0 && (
             <div className="space-y-8">
               {activeSeasons.map((season) => {
                 const seasonDataItem = seasonData[season.id]
-                if (!seasonDataItem) return null
-                
+                console.log('Season data check:', season.id, !!seasonDataItem)
+                if (!seasonDataItem) {
+                  return (
+                    <Card key={season.id}>
+                      <CardHeader>
+                        <CardTitle className="flex items-center space-x-2">
+                          <Trophy className="h-5 w-5" />
+                          <span>{season.name} - Standings</span>
+                          {getSeasonStatusBadge(season.status)}
+                        </CardTitle>
+                        <CardDescription>
+                          Best {season.best_legs_count} results from completed legs
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-8">
+                          <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 dark:text-gray-400">Loading standings...</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                }
                 const { legs, standings } = seasonDataItem
                 const completedLegs = legs.filter(leg => leg.status === 'completed')
-                
                 return (
                   <Card key={season.id}>
                     <CardHeader>
@@ -522,7 +583,7 @@ export default function StoreDetailsPage() {
                                   <TableCell className="font-medium">
                                     <div className="flex items-center space-x-2">
                                       <span className="text-sm text-gray-500">#{index + 1}</span>
-                                      <span>{standing.player_name}</span>
+                                      <span>{getPlayerDisplayName(standing.player_name, standing.player_visibility)}</span>
                                     </div>
                                   </TableCell>
                                   {completedLegs.map((leg) => (
@@ -558,7 +619,7 @@ export default function StoreDetailsPage() {
             </div>
           )}
 
-          {/* Previous Seasons */}
+          {/* Find a past season */}
           {completedSeasons.length > 0 && (
             <Card>
               <CardHeader>
@@ -568,7 +629,7 @@ export default function StoreDetailsPage() {
                 >
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-5 w-5" />
-                    <span>Previous Seasons</span>
+                    <span>Find a past season</span>
                   </div>
                   {showPreviousSeasons ? (
                     <ChevronUp className="h-5 w-5" />
@@ -586,29 +647,16 @@ export default function StoreDetailsPage() {
                     {completedSeasons.map((season) => (
                       <Card key={season.id} className="border-l-4 border-l-green-500">
                         <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h3 className="text-lg font-semibold">{season.name}</h3>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Completed {season.completed_at ? new Date(season.completed_at).toLocaleDateString() : 'Unknown'}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm text-gray-600 dark:text-gray-400">
-                                {season.total_legs} legs • Best {season.best_legs_count}
-                              </div>
-                            </div>
-                          </div>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Trophy className="h-5 w-5" />
+                            <span>{season.name}</span>
+                          </CardTitle>
+                          <CardDescription>
+                            Completed on {season.completed_at ? new Date(season.completed_at).toLocaleDateString() : 'N/A'}
+                          </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Button 
-                            variant="outline" 
-                            onClick={async () => {
-                              await loadSeasonData(season.id)
-                              setShowPreviousSeasons(false)
-                            }}
-                            className="w-full"
-                          >
+                          <Button onClick={() => router.push(`/to/seasons/${season.id}`)} variant="outline">
                             View Standings
                           </Button>
                         </CardContent>
@@ -617,40 +665,6 @@ export default function StoreDetailsPage() {
                   </div>
                 </CardContent>
               )}
-            </Card>
-          )}
-
-          {/* Season Information */}
-          {activeSeasons.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Active Seasons Information</CardTitle>
-                <CardDescription>
-                  Overview of all active seasons
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{activeSeasons.length}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Active Seasons</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
-                      {Object.values(seasonData).reduce((total, data) => total + data.standings.length, 0)}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Total Players</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">
-                      {Object.values(seasonData).reduce((total, data) => 
-                        total + data.legs.filter(leg => leg.status === 'completed').length, 0
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Completed Legs</div>
-                  </div>
-                </div>
-              </CardContent>
             </Card>
           )}
         </div>
