@@ -1,103 +1,258 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Trophy, Store, MapPin, Users, Calendar, Loader2, ChevronRight } from 'lucide-react'
+import { toast } from 'sonner'
+import { useTheme } from 'next-themes'
+import { Moon, Sun } from 'lucide-react'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+interface Store {
+  id: string
+  name: string
+  address: string
+  created_at: string
+}
+
+export default function LandingPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [stores, setStores] = useState<Store[]>([])
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null)
+  const [user, setUser] = useState<any>(null)
+  const { theme, setTheme } = useTheme();
+  const [redirecting, setRedirecting] = useState(false)
+
+  useEffect(() => {
+    checkAuthAndLoadStores()
+  }, [])
+
+  useEffect(() => {
+    if (!user && selectedStore) {
+      router.push(`/store/${selectedStore.id}`)
+    }
+  }, [selectedStore, user, router])
+
+  useEffect(() => {
+    if (user) {
+      setRedirecting(true)
+      console.log('Landing page user role:', user.role)
+      if (user.role === 'admin') {
+        router.replace('/admin')
+      } else if (user.role === 'tournament_organiser') {
+        router.replace('/to')
+      } else {
+        router.replace('/login')
+      }
+    }
+  }, [user, router])
+
+  const checkAuthAndLoadStores = async () => {
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      
+      if (authUser) {
+        // Get user role from our users table
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', authUser.id)
+          .single()
+
+        if (userData) {
+          setUser(userData)
+          // Don't redirect here - let the useEffect handle it
+        }
+      }
+
+      // Load stores for anonymous users
+      await loadStores()
+    } catch (error) {
+      console.error('Auth check error:', error)
+      await loadStores()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadStores = async () => {
+    try {
+      const { data: storesData, error } = await supabase
+        .from('stores')
+        .select('*')
+        .order('name')
+
+      if (error) {
+        console.error('Error loading stores:', error)
+        toast.error('Failed to load stores')
+        return
+      }
+
+      setStores(storesData || [])
+
+      // Check for stored store preference
+      const storedStoreId = localStorage.getItem('selectedStoreId')
+      if (storedStoreId) {
+        const storedStore = storesData?.find(store => store.id === storedStoreId)
+        if (storedStore) {
+          setSelectedStore(storedStore)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading stores:', error)
+      toast.error('Failed to load stores')
+    }
+  }
+
+  const handleStoreSelect = (store: Store) => {
+    setSelectedStore(store)
+    localStorage.setItem('selectedStoreId', store.id)
+    toast.success(`Selected ${store.name}`)
+  }
+
+  const handleChangeStore = () => {
+    setSelectedStore(null)
+    localStorage.removeItem('selectedStoreId')
+  }
+
+  if (redirecting) {
+    return null
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading...</span>
         </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <Trophy className="h-8 w-8 text-blue-600" />
+              <span className="text-xl font-bold text-gray-900 dark:text-white">MtgLeague</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <ThemeToggle />
+              {selectedStore && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleChangeStore}
+                >
+                  Change Store
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => router.push('/login')}
+              >
+                Admin Sign In
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {!selectedStore ? (
+          // Store Selection
+          <div className="space-y-8">
+            <div className="text-center">
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                Select Your Store
+              </h1>
+              <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                Choose your local game store to view tournaments, leagues, and events.
+              </p>
+            </div>
+
+            {stores.length === 0 ? (
+              <Card className="max-w-md mx-auto">
+                <CardHeader>
+                  <CardTitle className="text-center">No Stores Available</CardTitle>
+                  <CardDescription className="text-center">
+                    There are currently no stores registered in the system.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {stores.map((store) => (
+                  <Card 
+                    key={store.id} 
+                    className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-blue-300"
+                    onClick={() => handleStoreSelect(store)}
+                  >
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                          <Store className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <CardTitle className="mt-4">{store.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 mb-4">
+                        <MapPin className="h-4 w-4" />
+                        <span className="text-sm">{store.address}</span>
+                      </div>
+                      <Button 
+                        className="w-full" 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleStoreSelect(store)
+                        }}
+                      >
+                        Select Store
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          // Store Details - Redirect to store page
+          <div className="text-center">
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span>Loading store details...</span>
+            </div>
+          </div>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-8 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <Trophy className="h-6 w-6 text-blue-400" />
+            <span className="text-lg font-bold">MtgLeague</span>
+          </div>
+          <p className="text-gray-400">
+            The ultimate platform for Magic: The Gathering tournament organization.
+          </p>
+          <div className="border-t border-gray-800 mt-4 pt-4 text-center text-gray-400">
+            <p>&copy; 2024 MtgLeague. All rights reserved.</p>
+          </div>
+        </div>
       </footer>
     </div>
-  );
+  )
 }

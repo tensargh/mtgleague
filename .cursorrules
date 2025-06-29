@@ -1,0 +1,46 @@
+# Cursor Rules for MtgLeague Project
+
+## CRITICAL: Working Directory
+- ALWAYS work in the `mtgleague/` subdirectory for all development
+- The Next.js app is located in `mtgleague/src/`
+- All npm commands must be run from `mtgleague/` directory
+- All file paths should be relative to `mtgleague/` when working with the app
+
+## Project Structure
+- Root level: Project documentation and planning files
+- `mtgleague/`: The actual Next.js application
+  - `mtgleague/src/`: Source code
+  - `mtgleague/package.json`: Dependencies
+  - `mtgleague/node_modules/`: Installed packages
+- `migrations/`: Database migrations (root level)
+  - Numbered sequentially: `001-initial-schema.sql`, `002-feature-name.sql`, etc.
+
+## Development Guidelines
+- When installing packages: `cd mtgleague && npm install <package>`
+- When creating new files: Always place them in `mtgleague/src/`
+- When editing existing files: Ensure they're in `mtgleague/src/`
+- When running commands: Always run from `mtgleague/` directory
+
+## Migration Guidelines
+- ALWAYS create migrations in `/migrations/` folder (root level)
+- Number migrations sequentially: `001-`, `002-`, `003-`, etc.
+- Use descriptive names: `001-initial-schema.sql`, `002-user-management.sql`
+- Each migration should be self-contained and runnable
+- Include clear comments explaining what each migration does
+- Test migrations in development before applying to production
+
+## Common Mistakes to Avoid
+- ❌ Installing packages at root level
+- ❌ Creating files outside `mtgleague/src/`
+- ❌ Running npm commands from root directory
+- ❌ Creating migrations outside `/migrations/` folder
+- ❌ Using non-sequential migration numbers
+- ✅ Always work within `mtgleague/` subdirectory
+- ✅ Always use `/migrations/` for database changes
+
+## File Organization
+- `docs/`: Project documentation, PRDs, setup guides
+- `migrations/`: Database migrations (sequentially numbered)
+- `mtgleague/src/app/`: Next.js app router pages
+- `mtgleague/src/components/`: React components
+- `mtgleague/src/lib/`: Utility functions and configurations 

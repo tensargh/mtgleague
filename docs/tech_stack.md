@@ -123,6 +123,155 @@ npx shadcn@latest add avatar
    - Go to OAuth2 settings
    - Add redirect URI from Supabase
 
+### 2. Provider Registration
+
+#### Step 1: Create GitHub Account (if you don't have one)
+1. **Go to GitHub**: [github.com](https://github.com)
+2. **Click "Sign up"** and create an account
+3. **Verify your email** address
+4. **Set up two-factor authentication** (recommended for security)
+
+#### Step 2: Supabase Setup
+1. **Create Supabase Account**:
+   - Go to [supabase.com](https://supabase.com)
+   - Click "Start your project" or "Sign up"
+   - Choose "Continue with GitHub" (recommended)
+   - Authorize Supabase to access your GitHub account
+
+2. **Create Your First Project**:
+   - Click "New Project" button
+   - **Organization**: Select "Personal" (or create one if needed)
+   - **Name**: Enter "mtgleague" or your preferred name
+   - **Database Password**: Create a strong password (save this securely!)
+   - **Region**: Choose closest to your users (e.g., "West Europe" for UK)
+   - **Pricing Plan**: Select "Free" tier
+   - Click "Create new project"
+
+3. **Wait for Setup** (2-3 minutes):
+   - Supabase will create your database and API
+   - You'll see a green checkmark when ready
+
+4. **Get Your API Keys**:
+   - In your project dashboard, click **"Settings"** (gear icon) in the left sidebar
+   - Click **"API"** in the submenu
+   - **Project URL**: Copy the URL (starts with `https://`)
+   - **anon public**: Copy this key (starts with `eyJ`)
+   - **service_role**: Copy this key (starts with `eyJ`) - keep this secret!
+
+5. **Configure Authentication URLs**:
+   - Click **"Authentication"** in the left sidebar
+   - Click **"URL Configuration"**
+   - **Site URL**: Enter `http://localhost:3000` (for development)
+   - **Redirect URLs**: Add these one by one:
+     ```
+     http://localhost:3000/auth/callback
+     http://localhost:3000/auth/confirm
+     http://localhost:3000/auth/reset-password
+     ```
+   - Click **"Save"**
+
+#### Step 3: Vercel Setup
+1. **Create Vercel Account**:
+   - Go to [vercel.com](https://vercel.com)
+   - Click "Sign up"
+   - Choose "Continue with GitHub"
+   - Authorize Vercel to access your GitHub account
+
+2. **Import Your Repository**:
+   - In Vercel dashboard, click **"New Project"**
+   - Click **"Import Git Repository"**
+   - Find your `mtgleague` repository and click **"Import"**
+   - **Project Name**: Keep default or change to "mtgleague"
+   - **Framework Preset**: Should auto-detect "Next.js"
+   - **Root Directory**: Leave as `./` (default)
+   - **Build Command**: Leave as `npm run build` (default)
+   - **Output Directory**: Leave as `.next` (default)
+   - **Install Command**: Leave as `npm install` (default)
+   - Click **"Deploy"**
+
+3. **Wait for First Deployment** (2-3 minutes):
+   - Vercel will build and deploy your project
+   - You'll get a URL like `https://mtgleague-abc123.vercel.app`
+
+4. **Configure Environment Variables**:
+   - In your Vercel project dashboard, click **"Settings"**
+   - Click **"Environment Variables"**
+   - Add these variables one by one:
+     - **Name**: `NEXT_PUBLIC_SUPABASE_URL`
+     - **Value**: Your Supabase Project URL
+     - **Environment**: Select "Production", "Preview", and "Development"
+     - Click **"Add"**
+     - Repeat for:
+       - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (your anon public key)
+       - `SUPABASE_SERVICE_ROLE_KEY` (your service role key)
+
+5. **Redeploy with Environment Variables**:
+   - Go to **"Deployments"** tab
+   - Click **"Redeploy"** on your latest deployment
+   - This ensures your environment variables are included
+
+#### Step 4: OAuth Providers (Optional but Recommended)
+1. **Google OAuth Setup**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com)
+   - **Create or Select Project**:
+     - Click the project dropdown at the top
+     - Click "New Project" or select existing
+     - Name it "MtgLeague" or similar
+   - **Enable APIs**:
+     - Go to "APIs & Services" → "Library"
+     - Search for "Google+ API" and click it
+     - Click "Enable"
+   - **Create OAuth Credentials**:
+     - Go to "APIs & Services" → "Credentials"
+     - Click "Create Credentials" → "OAuth 2.0 Client IDs"
+     - **Application type**: Choose "Web application"
+     - **Name**: "MtgLeague Web Client"
+     - **Authorized redirect URIs**: Add your Supabase callback URL:
+       ```
+       https://glsxnptdvxreazytaqzn.supabase.co/auth/v1/callback
+       ```
+       (Replace `your-project-ref` with your actual Supabase project reference)
+     - Click "Create"
+     - **Copy the Client ID and Client Secret** (you'll need these)
+
+2. **Configure Google OAuth in Supabase**:
+   - Go back to your Supabase dashboard
+   - Go to "Authentication" → "Providers"
+   - Find "Google" and click the toggle to enable it
+   - **Client ID**: Paste your Google Client ID
+   - **Client Secret**: Paste your Google Client Secret
+   - Click "Save"
+
+3. **Discord OAuth Setup** (Alternative):
+   - Go to [Discord Developer Portal](https://discord.com/developers/applications)
+   - Click "New Application"
+   - **Name**: "MtgLeague"
+   - Click "Create"
+   - Go to "OAuth2" in the left sidebar
+   - **Redirects**: Add your Supabase callback URL:
+     ```
+     https://your-project-ref.supabase.co/auth/v1/callback
+     ```
+   - **Copy the Client ID and Client Secret**
+   - Go back to Supabase and enable Discord provider with these credentials
+
+#### Step 5: Test Your Setup
+1. **Test Local Development**:
+   - In your local project, create `.env.local` with your Supabase keys
+   - Run `npm run dev`
+   - Go to `http://localhost:3000`
+   - Try signing in with email/password or OAuth
+
+2. **Test Production**:
+   - Go to your Vercel URL
+   - Test the same authentication flows
+   - Check that redirects work properly
+
+3. **Common Issues to Check**:
+   - **"Invalid redirect URL"**: Make sure URLs in Supabase match exactly
+   - **"Site URL not configured"**: Set Site URL in Supabase Authentication settings
+   - **OAuth errors**: Verify Client ID/Secret are correct and redirect URLs match
+
 ### 3. Environment Setup
 
 #### Create Environment Files
@@ -149,6 +298,105 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 1. In Supabase dashboard, go to Authentication → Policies
 2. Create policies for each table based on user roles
 3. Test policies with different user types
+
+#### Row Level Security (RLS) Setup & Testing
+**Note:** The schema.sql file already includes comprehensive RLS policies for all tables. Here's how to verify and test them:
+
+1. **Verify RLS is Enabled:**
+   - Go to Supabase dashboard → Table Editor
+   - Check that "RLS" column shows as "Enabled" for all tables in the Table Editor
+   - If not, run: `ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;`
+
+2. **View Existing Policies:**
+   - Go to Authentication → Policies
+   - You should see policies for each table with names like:
+     - "Public can view stores"
+     - "Admins can manage stores"
+     - "TOs can manage their store players"
+     - etc.
+
+3. **Test Policies with Different User Types:**
+
+   **A. Test as Anonymous User:**
+   ```sql
+   -- Should be able to view public data
+   SELECT * FROM stores;
+   SELECT * FROM players WHERE visibility = 'public';
+   SELECT * FROM seasons WHERE status = 'active';
+   
+   -- Should NOT be able to insert/update/delete
+   INSERT INTO stores (name) VALUES ('Test Store'); -- Should fail
+   ```
+
+   **B. Test as Tournament Organiser:**
+   ```sql
+   -- First, create a test TO user
+   INSERT INTO users (email, name, role) 
+   VALUES ('to@test.com', 'Test TO', 'tournament_organiser');
+   
+   -- Assign TO to a store
+   INSERT INTO store_tos (store_id, user_id) 
+   VALUES ('store-uuid', 'user-uuid');
+   
+   -- Test TO permissions (run as TO user)
+   -- Should be able to manage their assigned store
+   SELECT * FROM players WHERE store_id = 'assigned-store-uuid';
+   INSERT INTO players (store_id, name) VALUES ('assigned-store-uuid', 'New Player');
+   
+   -- Should NOT be able to access other stores
+   SELECT * FROM players WHERE store_id = 'other-store-uuid'; -- Should return empty
+   ```
+
+   **C. Test as Admin:**
+   ```sql
+   -- Create admin user
+   INSERT INTO users (email, name, role) 
+   VALUES ('admin@test.com', 'Test Admin', 'admin');
+   
+   -- Test admin permissions (run as admin user)
+   -- Should be able to access everything
+   SELECT * FROM stores;
+   SELECT * FROM users;
+   INSERT INTO stores (name) VALUES ('Admin Created Store');
+   ```
+
+4. **Testing Strategy:**
+   - **Use Supabase Auth**: Create test users through the Auth dashboard
+   - **Use SQL Editor**: Switch between different authenticated users
+   - **Test Edge Cases**: Try accessing data across store boundaries
+   - **Verify Public Access**: Ensure anonymous users can see appropriate data
+
+5. **Common Test Scenarios:**
+   ```sql
+   -- Test store isolation for TOs
+   -- TO should only see players from their assigned store
+   
+   -- Test admin override
+   -- Admin should see all data regardless of store
+   
+   -- Test public visibility
+   -- Anonymous users should see public players and active seasons
+   
+   -- Test completed vs active data
+   -- Public should see completed legs but not in-progress ones
+   ```
+
+6. **Debugging RLS Issues:**
+   ```sql
+   -- Check current user
+   SELECT auth.uid();
+   
+   -- Check user role
+   SELECT role FROM users WHERE id = auth.uid();
+   
+   -- Check store assignments
+   SELECT store_id FROM store_tos WHERE user_id = auth.uid();
+   ```
+
+**Recommended Additional Policies (if needed):**
+- Add rate limiting policies for public endpoints
+- Consider adding audit logging for sensitive operations
+- Add policies for soft-delete functionality if needed
 
 ### 5. Authentication Setup
 
