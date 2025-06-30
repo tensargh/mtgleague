@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,7 @@ interface Store {
   address: string
 }
 
-export default function Top8Page() {
+function Top8PageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const seasonId = searchParams.get('season')
@@ -170,4 +170,12 @@ export default function Top8Page() {
       </Card>
     </div>
   )
+}
+
+export default function Top8Page() {
+  return (
+    <Suspense fallback={null}>
+      <Top8PageInner />
+    </Suspense>
+  );
 } 

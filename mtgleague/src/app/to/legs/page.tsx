@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Trophy, Calendar, Plus, Loader2, Users, Play, CheckCircle, Clock, Trash2, RefreshCw } from 'lucide-react'
+import { Trophy, Calendar, Plus, Loader2, Users, Play, CheckCircle, Clock, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { Top8Bracket, Top8BracketProps } from '@/components/Top8Bracket'
@@ -40,21 +40,7 @@ interface Store {
   address: string
 }
 
-interface Player {
-  id: string
-  name: string
-  email?: string
-}
 
-interface PlayerResult {
-  player_id: string
-  player_name: string
-  wins: number
-  draws: number
-  losses: number
-  points: number
-  participated: boolean
-}
 
 interface PlayerStanding {
   player_id: string
@@ -133,7 +119,7 @@ export default function LegsPage() {
             if (match.player2_id) playerIds.add(match.player2_id)
             if (match.winner_id) playerIds.add(match.winner_id)
           })
-          let playersData: Record<string, { name: string; visibility: 'public' | 'private' }> = {}
+          const playersData: Record<string, { name: string; visibility: 'public' | 'private' }> = {}
           if (playerIds.size > 0) {
             const { data: players, error: playersError } = await supabase
               .from('players')
@@ -623,7 +609,7 @@ export default function LegsPage() {
         await loadData()
         setTop8Matches({ qf: [], sf: [], final: [] })
       }
-    } catch (err) {
+            } catch {
       toast.error('Failed to reset Top 8')
     } finally {
       setResettingTop8(false)
@@ -734,7 +720,7 @@ export default function LegsPage() {
                 </div>
               </div>
             ) : (
-              <Select value={selectedSeason?.id} onValueChange={handleSeasonChange}>
+              <Select value="" onValueChange={handleSeasonChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a season" />
                 </SelectTrigger>
@@ -865,12 +851,12 @@ export default function LegsPage() {
           <CardContent className="text-center py-12">
             <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No legs yet</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              {selectedSeason && legs.length >= selectedSeason.total_legs 
-                ? 'All legs have been completed. Ready for Top 8!'
-                : 'Create your first leg to start the tournament.'
-              }
-            </p>
+                            <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  {selectedSeason && legs.length >= selectedSeason.total_legs 
+                    ? 'All legs have been completed. Ready for Top 8!'
+                    : 'Create your first leg to start the tournament.'
+                  }
+                </p>
             {selectedSeason && legs.length >= selectedSeason.total_legs ? (
               <Button 
                 onClick={() => router.push(`/to/seasons/${selectedSeason.id}/top8`)}

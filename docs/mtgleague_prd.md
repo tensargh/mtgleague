@@ -227,10 +227,11 @@ The store details page displays information in the following order:
 ## Next Priority Items
 
 ### HIGH PRIORITY
-1. **Tiebreaker Calculations** - Implement proper tiebreaker logic for standings
-2. **Data Validation** - Add validation for leg results and player data (prevent duplicate/invalid entries)
-3. **Export Functionality** - Allow exporting standings and brackets to CSV/PDF
-4. **Advanced Standings** - Add more sophisticated standings calculations (e.g., head-to-head, SoS)
+1. **Deployment to Vercel** - Deploy the application to Vercel for production use
+2. **Tiebreaker Calculations** - Implement proper tiebreaker logic for standings
+3. **Data Validation** - Add validation for leg results and player data (prevent duplicate/invalid entries)
+4. **Export Functionality** - Allow exporting standings and brackets to CSV/PDF
+5. **Advanced Standings** - Add more sophisticated standings calculations (e.g., head-to-head, SoS)
 
 ### MEDIUM PRIORITY
 1. **Email Notifications** - Notify players/TOs when leg results or Top 8 changes are posted
@@ -238,7 +239,8 @@ The store details page displays information in the following order:
 3. **Season Statistics** - Add analytics and performance tracking for players/seasons
 
 ### LOW PRIORITY
-1. **Analytics Dashboard** - Add comprehensive statistics and performance tracking
-2. **API Development** - Create external integration capabilities (API endpoints, webhooks)
-3. **Real-time Updates** - Enable live updates for standings and brackets
-4. **Mobile App** - Native mobile application or PWA
+1. **Dev/QA/Prod Environments** - Set up separate development, QA, and production environments
+2. **Analytics Dashboard** - Add comprehensive statistics and performance tracking
+3. **API Development** - Create external integration capabilities (API endpoints, webhooks)
+4. **Real-time Updates** - Enable live updates for standings and brackets
+5. **Mobile App** - Native mobile application or PWA

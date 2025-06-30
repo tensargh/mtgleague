@@ -2,13 +2,14 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
+import { Suspense } from 'react';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export default function ConfirmPage() {
+function ConfirmPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -33,5 +34,13 @@ export default function ConfirmPage() {
         <p className="text-gray-600 dark:text-gray-300">Please wait while we confirm your email address. You will be redirected to the login page shortly.</p>
       </div>
     </div>
+  );
+}
+
+export default function ConfirmPage() {
+  return (
+    <Suspense fallback={null}>
+      <ConfirmPageInner />
+    </Suspense>
   );
 } 
