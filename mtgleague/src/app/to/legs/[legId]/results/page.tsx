@@ -5,12 +5,12 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Save, Loader2, Trophy, Users, Calculator, Plus, UserPlus } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Users, Trophy, Plus, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Player {
@@ -64,7 +64,7 @@ export default function LegResultsPage() {
   const [playerResults, setPlayerResults] = useState<PlayerResult[]>([])
   const [showAddPlayer, setShowAddPlayer] = useState(false)
   const [addPlayerMode, setAddPlayerMode] = useState<'select' | 'new'>('select')
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string>('')
+  const [selectedPlayerId, setSelectedPlayerId] = useState('')
   const [newPlayerName, setNewPlayerName] = useState('')
 
   useEffect(() => {
@@ -221,9 +221,15 @@ export default function LegResultsPage() {
         console.log('Leg players found:', playersToShow)
       } else {
         console.log('No existing results, showing players from previous legs')
-        // Use the logic for new legs - show players from previous legs
-        playersToShow = leaguePlayers
-        console.log('League players to show:', playersToShow)
+        // For new legs, show players from previous legs if any exist
+        // If no previous legs (first leg of season), show all store players
+        if (leaguePlayers.length > 0) {
+          playersToShow = leaguePlayers
+          console.log('Using league players from previous legs:', playersToShow)
+        } else {
+          playersToShow = allPlayers
+          console.log('First leg of season, showing all store players:', playersToShow)
+        }
       }
 
       // Set the participating players state
@@ -240,7 +246,7 @@ export default function LegResultsPage() {
           draws: existingResult?.draws || 0,
           losses: existingResult?.losses || 0,
           points: existingResult?.points || 0,
-          participated: existingResult ? existingResult.participated : false
+          participated: existingResult ? existingResult.participated : true
         }
       })
 
@@ -379,6 +385,17 @@ export default function LegResultsPage() {
       return
     }
 
+    // Validate that participating players have at least one game played
+    const invalidPlayers = participatingPlayers.filter(result => 
+      (result.wins + result.draws + result.losses) === 0
+    )
+    
+    if (invalidPlayers.length > 0) {
+      const playerNames = invalidPlayers.map(p => p.player_name).join(', ')
+      toast.error(`The following players are marked as participating but have no games played: ${playerNames}. Please either enter their results or mark them as "Did not play".`)
+      return
+    }
+
     // Check if leg is already completed
     if (leg?.status === 'completed') {
       toast.error('This leg is already completed')
@@ -480,7 +497,7 @@ export default function LegResultsPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {leg.name} - Results
+              Round {leg.round_number} - Results
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
               {season.name} • {store.name}
@@ -511,11 +528,7 @@ export default function LegResultsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Leg Name</Label>
-              <p className="text-lg font-semibold">{leg.name}</p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Round Number</Label>
               <p className="text-lg font-semibold">{leg.round_number}</p>
@@ -733,4 +746,4 @@ export default function LegResultsPage() {
       </Card>
     </div>
   )
-}
+} 

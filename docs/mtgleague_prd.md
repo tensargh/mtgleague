@@ -69,6 +69,10 @@
 #### Tournament Features
 - ✅ **Top 8 tournament system** - Complete tournament bracket management
 - ✅ **Tournament creation** - Automatic Top 8 creation from season standings
+- ✅ **Manual Top 8 bracket management** - TOs have full manual control over player selection and result entry for all rounds
+- ✅ **Top 8 reset feature** - TOs can reset the Top 8, clearing all players/results and re-activating the season
+- ✅ **Top 8 delete feature** - TOs can delete the Top 8 if needed
+- ✅ **Bracket display for all** - Top 8 bracket is shown on both TO and public/anonymous season views
 - ✅ **Tournament bracket management** - Manual player advancement between rounds
 - ✅ **Tournament match results** - Match result entry and winner tracking
 - ✅ **Tournament standings** - Complete bracket display with results
@@ -224,17 +228,17 @@ The store details page displays information in the following order:
 
 ### HIGH PRIORITY
 1. **Tiebreaker Calculations** - Implement proper tiebreaker logic for standings
-2. **Data Validation** - Add validation for leg results and player data
-3. **Export Functionality** - Allow exporting standings to CSV/PDF
+2. **Data Validation** - Add validation for leg results and player data (prevent duplicate/invalid entries)
+3. **Export Functionality** - Allow exporting standings and brackets to CSV/PDF
+4. **Advanced Standings** - Add more sophisticated standings calculations (e.g., head-to-head, SoS)
 
 ### MEDIUM PRIORITY
-1. **Email Notifications** - Notify players when leg results are posted
-2. **Advanced Standings** - Add more sophisticated standings calculations
-3. **Mobile Optimization** - Improve mobile experience
-4. **Season Statistics** - Add analytics and performance tracking
+1. **Email Notifications** - Notify players/TOs when leg results or Top 8 changes are posted
+2. **Mobile Optimization** - Improve mobile experience and responsiveness
+3. **Season Statistics** - Add analytics and performance tracking for players/seasons
 
 ### LOW PRIORITY
 1. **Analytics Dashboard** - Add comprehensive statistics and performance tracking
-2. **API Development** - Create external integration capabilities
-3. **Advanced Features** - Real-time updates, webhooks, etc.
+2. **API Development** - Create external integration capabilities (API endpoints, webhooks)
+3. **Real-time Updates** - Enable live updates for standings and brackets
 4. **Mobile App** - Native mobile application or PWA

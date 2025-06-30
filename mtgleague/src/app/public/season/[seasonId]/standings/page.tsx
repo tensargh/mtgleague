@@ -541,10 +541,7 @@ export default function PublicSeasonStandingsPage() {
                         {completedLegs.map((leg) => (
                           <TableHead key={leg.id} className="text-center">
                             <div className="space-y-1">
-                              <div className="font-medium">{leg.name}</div>
-                              <div className="text-xs text-gray-500">
-                                Round {leg.round_number}
-                              </div>
+                              <div className="font-medium">Round {leg.round_number}</div>
                               {getLegStatusBadge(leg.status)}
                             </div>
                           </TableHead>

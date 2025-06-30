@@ -16,6 +16,7 @@ interface Season {
   name: string
   store_id: string
   status: 'active' | 'completed'
+  best_legs_count: number
 }
 
 interface Store {
@@ -79,6 +80,7 @@ export default function Top8Page() {
   const [matches, setMatches] = useState<Top8Match[]>([])
   const [allSeasonPlayers, setAllSeasonPlayers] = useState<Player[]>([])
   const [dbError, setDbError] = useState<string | null>(null)
+  const [legs, setLegs] = useState<{ id: string; round_number: number; status: string; round: string }[]>([])
 
   useEffect(() => {
     if (seasonId) {
@@ -228,6 +230,20 @@ export default function Top8Page() {
         // Continue without top8 data - this might happen if tables don't exist yet
         setDbError('Database error occurred. Please check if migrations are applied.')
       }
+
+      // Load legs for this season
+      const { data: legsData, error: legsError } = await supabase
+        .from('legs')
+        .select('*')
+        .eq('season_id', seasonId)
+        .order('round_number', { ascending: true })
+
+      if (legsError) {
+        console.error('Error loading legs:', legsError)
+        return
+      }
+
+      setLegs(legsData || [])
 
     } catch (error) {
       console.error('Error loading data:', error)
@@ -782,54 +798,80 @@ export default function Top8Page() {
             <span>Season Standings</span>
           </CardTitle>
           <CardDescription>
-            Current standings for {season?.name}
+            Best {season?.best_legs_count} results from completed legs
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {standings.length === 0 ? (
+          {legs && legs.length > 0 && standings.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-48">Player</TableHead>
+                    {legs.filter(leg => leg.status === 'completed').map((leg) => (
+                      <TableHead key={leg.id} className="text-center">
+                        <div className="space-y-1">
+                          <div className="font-medium">Round {leg.round_number}</div>
+                          {/* Optionally add status badge here if needed */}
+                        </div>
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-center font-bold">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {standings.map((standing, index) => (
+                    <TableRow key={standing.player_id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-500">#{index + 1}</span>
+                          <span>{getPlayerDisplayName({
+                            id: standing.player_id,
+                            name: standing.player_name,
+                            visibility: standing.player_visibility
+                          })}</span>
+                          {standing.player_visibility === 'private' && (
+                            <Badge variant="secondary" className="text-xs">Private</Badge>
+                          )}
+                          {standing.player_name === 'Deleted Player' && (
+                            <Badge variant="destructive" className="text-xs">Deleted</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      {legs.filter(leg => leg.status === 'completed').map((leg) => (
+                        <TableCell
+                          key={leg.id}
+                          className={`text-center text-sm ${
+                            standing.best_leg_ids && standing.best_leg_ids.includes(leg.id)
+                              ? 'bg-green-50 dark:bg-green-900/20 font-semibold text-green-700 dark:text-green-300'
+                              : ''
+                          }`}
+                        >
+                          {standing.leg_scores && standing.leg_scores[leg.id]
+                            ? (standing.leg_scores[leg.id].participated
+                                ? standing.leg_scores[leg.id].points
+                                : 'DNP')
+                            : '-'}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-center font-bold">
+                        <div className="space-y-1">
+                          <div>{standing.total_points} pts</div>
+                          <div className="text-xs text-gray-500">
+                            {standing.legs_played} legs
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 dark:text-gray-400">No standings available yet</p>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Rank</TableHead>
-                  <TableHead>Player</TableHead>
-                  <TableHead className="text-center">Points</TableHead>
-                  <TableHead className="text-center">W/D/L</TableHead>
-                  <TableHead className="text-center">Legs Played</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {standings.slice(0, 8).map((standing) => (
-                  <TableRow key={standing.player_id}>
-                    <TableCell className="font-medium">#{standing.rank}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <span>{getPlayerDisplayName({ 
-                          id: standing.player_id, 
-                          name: standing.player_name, 
-                          visibility: standing.player_visibility 
-                        } as Player)}</span>
-                        {standing.player_visibility === 'private' && (
-                          <Badge variant="secondary" className="text-xs">Private</Badge>
-                        )}
-                        {standing.player_name === 'Deleted Player' && (
-                          <Badge variant="destructive" className="text-xs">Deleted</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center font-bold">{standing.total_points}</TableCell>
-                    <TableCell className="text-center">
-                      {standing.total_wins}/{standing.total_draws}/{standing.total_losses}
-                    </TableCell>
-                    <TableCell className="text-center">{standing.legs_played}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           )}
         </CardContent>
       </Card>

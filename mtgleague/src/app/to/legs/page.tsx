@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Trophy, Calendar, Plus, Loader2, Users, Play, CheckCircle, Clock } from 'lucide-react'
+import { Trophy, Calendar, Plus, Loader2, Users, Play, CheckCircle, Clock, Trash2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { Top8Bracket, Top8BracketProps } from '@/components/Top8Bracket'
 
 interface Season {
   id: string
@@ -81,9 +82,11 @@ export default function LegsPage() {
   const [deleting, setDeleting] = useState(false)
   const [legToDelete, setLegToDelete] = useState<Leg | null>(null)
   const [formData, setFormData] = useState({
-    name: '',
     round_number: 1
   })
+  const [top8Matches, setTop8Matches] = useState<Top8BracketProps['matches']>({ qf: [], sf: [], final: [] })
+  const [resettingTop8, setResettingTop8] = useState(false)
+  const [top8Id, setTop8Id] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -110,6 +113,70 @@ export default function LegsPage() {
       loadStandings(selectedSeason.id, legs)
     }
   }, [selectedSeason, legs, store])
+
+  // Fetch Top 8 bracket when selectedSeason changes
+  useEffect(() => {
+    async function fetchTop8() {
+      if (!selectedSeason || selectedSeason.status !== 'completed') {
+        setTop8Matches({ qf: [], sf: [], final: [] })
+        return
+      }
+      const { data: top8s } = await supabase.from('top8s').select('id').eq('season_id', selectedSeason.id).eq('status', 'completed').single()
+      if (top8s?.id) {
+        const { data } = await supabase.from('top8_matches').select('*').eq('top8_id', top8s.id);
+        const matchesData: any[] = data || [];
+        if (matchesData && matchesData.length > 0) {
+          // Gather all player IDs
+          const playerIds = new Set()
+          matchesData.forEach((match) => {
+            if (match.player1_id) playerIds.add(match.player1_id)
+            if (match.player2_id) playerIds.add(match.player2_id)
+            if (match.winner_id) playerIds.add(match.winner_id)
+          })
+          let playersData: Record<string, { name: string; visibility: 'public' | 'private' }> = {}
+          if (playerIds.size > 0) {
+            const { data: players, error: playersError } = await supabase
+              .from('players')
+              .select('id, name, visibility')
+              .in('id', Array.from(playerIds))
+            if (!playersError && players) {
+              players.forEach((player) => {
+                playersData[player.id] = { name: player.name, visibility: player.visibility }
+              })
+            }
+          }
+          // Map matches to include player objects
+          const matchesWithPlayers = matchesData.map((match) => ({
+            ...match,
+            player1: match.player1_id ? playersData[match.player1_id] : null,
+            player2: match.player2_id ? playersData[match.player2_id] : null,
+            winner: match.winner_id ? playersData[match.winner_id] : null,
+          }))
+          const qf = matchesWithPlayers.filter((m) => m.round === 'qf')
+          const sf = matchesWithPlayers.filter((m) => m.round === 'sf')
+          const final = matchesWithPlayers.filter((m) => m.round === 'final')
+          setTop8Matches({ qf, sf, final })
+        } else {
+          setTop8Matches({ qf: [], sf: [], final: [] })
+        }
+      } else {
+        setTop8Matches({ qf: [], sf: [], final: [] })
+      }
+    }
+    fetchTop8()
+  }, [selectedSeason])
+
+  useEffect(() => {
+    async function fetchTop8Id() {
+      if (!selectedSeason || selectedSeason.status !== 'completed') {
+        setTop8Id(null)
+        return
+      }
+      const { data: top8s } = await supabase.from('top8s').select('id').eq('season_id', selectedSeason.id).eq('status', 'completed').single()
+      setTop8Id(top8s?.id || null)
+    }
+    fetchTop8Id()
+  }, [selectedSeason])
 
   const loadData = async () => {
     try {
@@ -342,11 +409,6 @@ export default function LegsPage() {
       return
     }
 
-    if (!formData.name.trim()) {
-      toast.error('Please enter a leg name')
-      return
-    }
-
     // Check if we've reached the total_legs limit
     if (legs.length >= selectedSeason.total_legs) {
       toast.error(`Cannot create more legs. This season is limited to ${selectedSeason.total_legs} legs.`)
@@ -367,7 +429,7 @@ export default function LegsPage() {
         .from('legs')
         .insert({
           season_id: selectedSeason.id,
-          name: formData.name.trim(),
+          name: `Round ${formData.round_number}`,
           round_number: formData.round_number,
           status: 'scheduled'
         })
@@ -380,14 +442,22 @@ export default function LegsPage() {
         return
       }
 
+      if (!data) {
+        console.error('No data returned from leg creation')
+        toast.error('Failed to create leg')
+        return
+      }
+
+      const newLeg = data as Leg
+
       toast.success('Leg created successfully!')
       setCreateDialogOpen(false)
       const nextRoundNumber = legs.length > 0 ? Math.max(...legs.map(leg => leg.round_number)) + 1 : 1
-      setFormData({ name: '', round_number: nextRoundNumber })
+      setFormData({ round_number: nextRoundNumber })
       await loadLegs(selectedSeason.id)
       
       // Navigate to the newly created leg page
-      router.push(`/to/legs/${data.id}/results`)
+      router.push(`/to/legs/${newLeg.id}/results`)
     } catch (error) {
       console.error('Error creating leg:', error)
       toast.error('Failed to create leg')
@@ -462,7 +532,7 @@ export default function LegsPage() {
   // Calculate next round number when opening create dialog
   const openCreateDialog = () => {
     const nextRoundNumber = legs.length > 0 ? Math.max(...legs.map(leg => leg.round_number)) + 1 : 1
-    setFormData({ name: '', round_number: nextRoundNumber })
+    setFormData({ round_number: nextRoundNumber })
     setCreateDialogOpen(true)
   }
 
@@ -539,6 +609,27 @@ export default function LegsPage() {
     return legScore.points.toString()
   }
 
+  const handleResetTop8 = async () => {
+    if (!top8Id) return
+    if (!window.confirm('Are you sure you want to reset the Top 8? This will clear all players and results, and set the season back to active.')) return
+    setResettingTop8(true)
+    try {
+      const { error } = await supabase.rpc('reset_top8', { p_top8_id: top8Id })
+      if (error) {
+        toast.error('Failed to reset Top 8: ' + error.message)
+      } else {
+        toast.success('Top 8 has been reset!')
+        // Reload all data
+        await loadData()
+        setTop8Matches({ qf: [], sf: [], final: [] })
+      }
+    } catch (err) {
+      toast.error('Failed to reset Top 8')
+    } finally {
+      setResettingTop8(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -591,26 +682,71 @@ export default function LegsPage() {
         </div>
       )}
 
-      {/* Season Selector */}
+      {/* Leg Progress */}
+      {selectedSeason && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Trophy className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <p className="text-blue-800 dark:text-blue-200">
+                Leg Progress: {legs.length} of {selectedSeason.total_legs} legs
+              </p>
+            </div>
+            {legs.length >= selectedSeason.total_legs && (
+              <Badge variant="outline" className="text-green-600 border-green-600">
+                Season Complete
+              </Badge>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Season Selector or Season Details */}
       {seasons.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Select Season</CardTitle>
-            <CardDescription>Choose a season to manage its legs</CardDescription>
+            <CardTitle>
+              {selectedSeason ? 'Season Details' : 'Select Season'}
+            </CardTitle>
+            <CardDescription>
+              {selectedSeason 
+                ? `Managing legs for ${selectedSeason.name}`
+                : 'Choose a season to manage its legs'
+              }
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Select value={selectedSeason?.id} onValueChange={handleSeasonChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a season" />
-              </SelectTrigger>
-              <SelectContent>
-                {seasons.map((season) => (
-                  <SelectItem key={season.id} value={season.id}>
-                    {season.name} ({season.total_legs} legs)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {selectedSeason ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Season Name</Label>
+                    <p className="text-lg font-semibold">{selectedSeason.name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Legs</Label>
+                    <p className="text-lg font-semibold">{selectedSeason.total_legs}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Best Legs Count</Label>
+                    <p className="text-lg font-semibold">{selectedSeason.best_legs_count}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Select value={selectedSeason?.id} onValueChange={handleSeasonChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a season" />
+                </SelectTrigger>
+                <SelectContent>
+                  {seasons.map((season) => (
+                    <SelectItem key={season.id} value={season.id}>
+                      {season.name} ({season.total_legs} legs)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </CardContent>
         </Card>
       )}
@@ -642,10 +778,7 @@ export default function LegsPage() {
                       {legs.filter(leg => leg.status === 'completed').map((leg) => (
                         <TableHead key={leg.id} className="text-center">
                           <div className="space-y-1">
-                            <div className="font-medium">{leg.name}</div>
-                            <div className="text-xs text-gray-500">
-                              Round {leg.round_number}
-                            </div>
+                            <div className="font-medium">Round {leg.round_number}</div>
                             {getLegStatusBadge(leg.status)}
                           </div>
                         </TableHead>
@@ -685,6 +818,33 @@ export default function LegsPage() {
                 </Table>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Top 8 Bracket */}
+      {selectedSeason && selectedSeason.status === 'completed' && (top8Matches.qf.length > 0 || top8Matches.sf.length > 0 || top8Matches.final.length > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Top 8 Bracket</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-end mb-2">
+              <Button variant="destructive" onClick={handleResetTop8} disabled={resettingTop8}>
+                {resettingTop8 ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Resetting...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reset Top 8
+                  </>
+                )}
+              </Button>
+            </div>
+            <Top8Bracket matches={top8Matches} />
           </CardContent>
         </Card>
       )}
@@ -736,11 +896,11 @@ export default function LegsPage() {
             <Card key={leg.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{leg.name}</CardTitle>
+                  <CardTitle className="text-lg">Round {leg.round_number}</CardTitle>
                   {getStatusBadge(leg.status)}
                 </div>
                 <CardDescription>
-                  Round {leg.round_number} • Created {new Date(leg.created_at).toLocaleDateString()}
+                  Created {new Date(leg.created_at).toLocaleDateString()}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -790,16 +950,6 @@ export default function LegsPage() {
           </DialogHeader>
           <form onSubmit={handleCreateLeg} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Leg Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Leg 1, January Tournament, etc."
-                required
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="round_number">Round Number</Label>
               <Input
                 id="round_number"
@@ -809,6 +959,9 @@ export default function LegsPage() {
                 readOnly
                 className="bg-gray-50 dark:bg-gray-800"
               />
+              <p className="text-xs text-gray-500">
+                Round number is automatically calculated based on existing legs in this season.
+              </p>
             </div>
             <div className="flex justify-end space-x-2">
               <Button
@@ -840,7 +993,7 @@ export default function LegsPage() {
           <DialogHeader>
             <DialogTitle>Delete Leg</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{legToDelete?.name}"? This action cannot be undone and will remove all results for this leg.
+              Are you sure you want to delete "Round {legToDelete?.round_number}"? This action cannot be undone and will remove all results for this leg.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end space-x-2">
