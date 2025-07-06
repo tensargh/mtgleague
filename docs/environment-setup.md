@@ -16,8 +16,26 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_public_key_here
 # Keep this secret and never expose in client-side code
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
 
+# Optional: Base URL for invite links (auto-detected if not set)
+# NEXT_PUBLIC_BASE_URL=https://yourdomain.com
+
 # Optional: Database connection string (if needed for direct DB access)
 # DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres
+```
+
+## Base URL Configuration
+
+The application automatically detects the correct base URL for invite links:
+
+### Automatic Detection (Recommended)
+- **Local Development**: Uses `http://localhost:3000`
+- **Vercel Preview**: Uses `https://your-app.vercel.app` (from `VERCEL_URL`)
+- **Vercel Production**: Uses your custom domain or Vercel URL
+
+### Manual Override (Optional)
+If you need to override the automatic detection, set `NEXT_PUBLIC_BASE_URL`:
+```bash
+NEXT_PUBLIC_BASE_URL=https://yourdomain.com
 ```
 
 ## How to Get These Values
@@ -48,4 +66,11 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
 For production (Vercel), add these same environment variables in:
 1. Vercel project dashboard
 2. Settings → Environment Variables
-3. Add each variable with the same names as above 
+3. Add each variable with the same names as above
+
+### Vercel Environment Variables
+Vercel automatically provides:
+- `VERCEL_URL` - Your deployment URL
+- `VERCEL_ENV` - Environment (`production`, `preview`, `development`)
+
+The app uses these to automatically generate correct invite links. 

@@ -1,6 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+
+// Utility function to get the base URL for invite links
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL
+  }
+  
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`
+  }
+  
+  return 'http://localhost:3000' // fallback for local development
+}
 import { db, User, Invite, Store } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -88,7 +101,7 @@ export default function UsersManagementPage() {
       const invite = await db.createInvite(inviteForm.email, inviteForm.role, inviteForm.storeId || undefined)
       
       // Generate invite link
-      const inviteLink = `${window.location.origin}/invite/${invite.token}`
+      const inviteLink = `${getBaseUrl()}/invite/${invite.token}`
       
       // Send email invitation
       const emailResponse = await fetch('/api/send-invite', {
@@ -198,7 +211,7 @@ export default function UsersManagementPage() {
   const handleResendInvite = async (invite: Invite) => {
     try {
       // Generate invite link
-      const inviteLink = `${window.location.origin}/invite/${invite.token}`
+      const inviteLink = `${getBaseUrl()}/invite/${invite.token}`
       
       // Send email invitation
       const emailResponse = await fetch('/api/send-invite', {
@@ -226,7 +239,7 @@ export default function UsersManagementPage() {
   }
 
   const copyInviteLink = async (token: string) => {
-    const inviteLink = `${window.location.origin}/invite/${token}`
+    const inviteLink = `${getBaseUrl()}/invite/${token}`
     try {
       await navigator.clipboard.writeText(inviteLink)
       toast.success('Invite link copied to clipboard!')
