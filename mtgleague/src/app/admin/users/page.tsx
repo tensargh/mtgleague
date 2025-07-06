@@ -89,16 +89,23 @@ export default function UsersManagementPage() {
   const handleCreateInvite = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log('handleCreateInvite called')
+    console.log('inviteForm:', inviteForm)
+    console.log('inviteType:', inviteType)
+    
     // Validate form based on invite type
     if (inviteType === 'tournament_organiser' && !inviteForm.storeId) {
       toast.error('Please select a store for Tournament Organizer invites')
       return
     }
     
+    console.log('Validation passed, setting submitting to true')
     setSubmitting(true)
 
     try {
+      console.log('About to call db.createInvite')
       const invite = await db.createInvite(inviteForm.email, inviteForm.role, inviteForm.storeId || undefined)
+      console.log('db.createInvite completed:', invite)
       
       // Generate invite link
       const inviteLink = `${getBaseUrl()}/invite/${invite.token}`

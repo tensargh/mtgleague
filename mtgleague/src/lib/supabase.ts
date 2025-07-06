@@ -85,8 +85,12 @@ export const db = {
 
   // Invite management
   async createInvite(email: string, role: 'admin' | 'tournament_organiser', storeId?: string): Promise<Invite> {
+    console.log('createInvite function called with:', { email, role, storeId })
+    
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
+
+    console.log('User authenticated:', user.id)
 
     const inviteData: any = {
       email,
