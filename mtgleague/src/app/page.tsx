@@ -16,6 +16,7 @@ interface Store {
   id: string
   name: string
   address: string
+  logo_url?: string
   created_at: string
 }
 
@@ -200,8 +201,21 @@ export default function LandingPage() {
                   >
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                          <Store className="h-6 w-6 text-blue-600" />
+                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center overflow-hidden">
+                          {store.logo_url ? (
+                            <img 
+                              src={store.logo_url} 
+                              alt={`${store.name} logo`}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                // Fallback to store icon if image fails to load
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <Store className={`h-6 w-6 text-blue-600 ${store.logo_url ? 'hidden' : ''}`} />
                         </div>
                         <ChevronRight className="h-5 w-5 text-gray-400" />
                       </div>
