@@ -7,6 +7,8 @@ export async function POST(request: NextRequest) {
   try {
     const { email, role, inviteLink } = await request.json()
 
+    console.log('Send invite API called with:', { email, role, inviteLink })
+
     if (!email || !role || !inviteLink) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -23,6 +25,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log('RESEND_API_KEY is configured:', process.env.RESEND_API_KEY ? 'Yes' : 'No')
     console.log('Sending email to:', email, 'with role:', role)
 
     const roleDisplay = role === 'admin' ? 'Administrator' : 'Tournament Organizer'
@@ -77,6 +80,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Resend error:', error)
+      console.error('Resend error details:', JSON.stringify(error, null, 2))
       return NextResponse.json(
         { error: 'Failed to send email', details: error },
         { status: 500 }

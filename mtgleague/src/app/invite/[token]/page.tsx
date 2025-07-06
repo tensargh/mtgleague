@@ -76,7 +76,9 @@ export default function InviteAcceptancePage() {
 
     try {
       // First, validate the invite
+      console.log('About to call acceptInvite with:', { token, email: formData.email })
       const inviteResult = await db.acceptInvite(token, formData.email, formData.password)
+      console.log('acceptInvite result:', inviteResult)
       
       if (!inviteResult.success) {
         setError(inviteResult.error || 'Failed to accept invite')
@@ -84,12 +86,14 @@ export default function InviteAcceptancePage() {
       }
 
       // Create the user in Supabase Auth
+      console.log('About to create user in Supabase Auth')
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
       })
 
       if (authError) {
+        console.error('Auth error:', authError)
         setError(authError.message)
         return
       }
@@ -99,8 +103,12 @@ export default function InviteAcceptancePage() {
         return
       }
 
+      console.log('User created in Auth:', authData.user.id)
+
       // Complete the invite acceptance
+      console.log('About to call completeInviteAcceptance with:', { inviteId: inviteResult.invite_id, userId: authData.user.id })
       const completed = await db.completeInviteAcceptance(inviteResult.invite_id, authData.user.id)
+      console.log('completeInviteAcceptance result:', completed)
       
       if (!completed) {
         setError('Failed to complete invite acceptance')

@@ -166,12 +166,20 @@ export const db = {
   },
 
   async completeInviteAcceptance(inviteId: string, authUserId: string): Promise<boolean> {
+    console.log('completeInviteAcceptance called with:', { inviteId, authUserId })
+    
     const { data, error } = await supabase.rpc('complete_invite_acceptance', {
       invite_id: inviteId,
       auth_user_id: authUserId
     })
 
-    if (error) throw error
+    if (error) {
+      console.error('completeInviteAcceptance error:', error)
+      console.error('completeInviteAcceptance error details:', JSON.stringify(error, null, 2))
+      throw error
+    }
+    
+    console.log('completeInviteAcceptance result:', data)
     return data
   },
 
