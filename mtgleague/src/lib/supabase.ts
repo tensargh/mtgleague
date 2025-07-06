@@ -99,7 +99,7 @@ export const db = {
       inviteData.store_id = storeId
     }
 
-    console.log('Creating invite with data:', inviteData)
+    console.log('Creating invite with data:', JSON.stringify(inviteData, null, 2))
 
     const { data, error } = await supabase
       .from('invites')
@@ -109,12 +109,7 @@ export const db = {
 
     if (error) {
       console.error('Error creating invite:', error)
-      console.error('Error details:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
-      })
+      console.error('Error details:', JSON.stringify(error, null, 2))
       throw error
     }
 
