@@ -32,7 +32,7 @@ function LoginPageInner() {
         if (redirectTo) {
           if (
             (role === "admin" && redirectTo.startsWith("/admin")) ||
-            (role === "to" && redirectTo.startsWith("/to"))
+            (role === "tournament_organiser" && redirectTo.startsWith("/to"))
           ) {
             router.push(redirectTo);
             return;
@@ -41,7 +41,7 @@ function LoginPageInner() {
         // Otherwise, redirect by role
         if (role === "admin") {
           router.push("/admin");
-        } else if (role === "to") {
+        } else if (role === "tournament_organiser") {
           router.push("/to");
         } else {
           router.push("/");
