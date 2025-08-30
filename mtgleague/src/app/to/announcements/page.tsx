@@ -118,24 +118,32 @@ export default function AnnouncementsPage() {
           <CardTitle>Tips for Great Announcements</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
-            <div className="flex items-start space-x-2">
-              <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-              <span>Use <strong>**bold text**</strong> for important information like dates and times</span>
-            </div>
-            <div className="flex items-start space-x-2">
-              <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-              <span>Include links to external sites for ticket booking, reservations, or more information</span>
-            </div>
-            <div className="flex items-start space-x-2">
-              <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-              <span>Keep announcements concise and focused on one topic</span>
-            </div>
-            <div className="flex items-start space-x-2">
-              <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-              <span>Use the active/inactive toggle to control which announcements are visible to the public</span>
-            </div>
-          </div>
+                       <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
+               <div className="flex items-start space-x-2">
+                 <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                 <span>Use <strong>**bold text**</strong> for important information like dates and times (will render as bold)</span>
+               </div>
+               <div className="flex items-start space-x-2">
+                 <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                 <span>Use <em>*italic text*</em> for emphasis (will render as italic)</span>
+               </div>
+               <div className="flex items-start space-x-2">
+                 <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                 <span>Links like https://example.com will automatically become clickable</span>
+               </div>
+               <div className="flex items-start space-x-2">
+                 <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                 <span>Line breaks will be preserved automatically</span>
+               </div>
+               <div className="flex items-start space-x-2">
+                 <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                 <span>Keep announcements concise and focused on one topic</span>
+               </div>
+               <div className="flex items-start space-x-2">
+                 <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                 <span>Use the active/inactive toggle to control which announcements are visible to the public</span>
+               </div>
+             </div>
         </CardContent>
       </Card>
     </div>

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Megaphone, Edit, Save, X, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
-import { sanitizeHtml } from '@/lib/sanitize'
+import { sanitizeHtml, textToHtml } from '@/lib/sanitize'
 
 interface StoreAnnouncement {
   id: string
@@ -70,39 +70,40 @@ export default function StoreAnnouncements({ storeId }: StoreAnnouncementsProps)
     setEditContent('')
   }
 
-  const handleSave = async () => {
-    if (!storeId || !editingId) return
+           const handleSave = async () => {
+           if (!storeId || !editingId) return
 
-    setSaving(true)
-    try {
-      // Sanitize the HTML content
-      const sanitizedContent = sanitizeHtml(editContent)
+           setSaving(true)
+           try {
+             // Convert markdown to HTML, then sanitize
+             const htmlContent = textToHtml(editContent)
+             const sanitizedContent = sanitizeHtml(htmlContent)
 
-      const { error } = await supabase
-        .from('store_announcements')
-        .update({ 
-          content: sanitizedContent,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', editingId)
+             const { error } = await supabase
+               .from('store_announcements')
+               .update({
+                 content: sanitizedContent,
+                 updated_at: new Date().toISOString()
+               })
+               .eq('id', editingId)
 
-      if (error) {
-        console.error('Error updating announcement:', error)
-        toast.error('Failed to update announcement')
-        return
-      }
+             if (error) {
+               console.error('Error updating announcement:', error)
+               toast.error('Failed to update announcement')
+               return
+             }
 
-      toast.success('Announcement updated successfully')
-      setEditingId(null)
-      setEditContent('')
-      loadAnnouncements()
-    } catch (error) {
-      console.error('Error updating announcement:', error)
-      toast.error('Failed to update announcement')
-    } finally {
-      setSaving(false)
-    }
-  }
+             toast.success('Announcement updated successfully')
+             setEditingId(null)
+             setEditContent('')
+             loadAnnouncements()
+           } catch (error) {
+             console.error('Error updating announcement:', error)
+             toast.error('Failed to update announcement')
+           } finally {
+             setSaving(false)
+           }
+         }
 
   const handleToggleActive = async (announcement: StoreAnnouncement) => {
     try {
@@ -151,38 +152,39 @@ export default function StoreAnnouncements({ storeId }: StoreAnnouncementsProps)
     }
   }
 
-  const handleCreate = async () => {
-    if (!storeId) return
+           const handleCreate = async () => {
+           if (!storeId) return
 
-    setSaving(true)
-    try {
-      // Sanitize the HTML content
-      const sanitizedContent = sanitizeHtml(editContent)
+           setSaving(true)
+           try {
+             // Convert markdown to HTML, then sanitize
+             const htmlContent = textToHtml(editContent)
+             const sanitizedContent = sanitizeHtml(htmlContent)
 
-      const { error } = await supabase
-        .from('store_announcements')
-        .insert({
-          store_id: storeId,
-          content: sanitizedContent,
-          is_active: true
-        })
+             const { error } = await supabase
+               .from('store_announcements')
+               .insert({
+                 store_id: storeId,
+                 content: sanitizedContent,
+                 is_active: true
+               })
 
-      if (error) {
-        console.error('Error creating announcement:', error)
-        toast.error('Failed to create announcement')
-        return
-      }
+             if (error) {
+               console.error('Error creating announcement:', error)
+               toast.error('Failed to create announcement')
+               return
+             }
 
-      toast.success('Announcement created successfully')
-      setEditContent('')
-      loadAnnouncements()
-    } catch (error) {
-      console.error('Error creating announcement:', error)
-      toast.error('Failed to create announcement')
-    } finally {
-      setSaving(false)
-    }
-  }
+             toast.success('Announcement created successfully')
+             setEditContent('')
+             loadAnnouncements()
+           } catch (error) {
+             console.error('Error creating announcement:', error)
+             toast.error('Failed to create announcement')
+           } finally {
+             setSaving(false)
+           }
+         }
 
   if (loading) {
     return (
@@ -241,15 +243,16 @@ export default function StoreAnnouncements({ storeId }: StoreAnnouncementsProps)
           )}
         </div>
         
-        <div className="text-xs text-gray-500">
-          <p>💡 <strong>Tips:</strong></p>
-          <ul className="list-disc list-inside ml-2 space-y-1">
-            <li>Use <strong>**bold**</strong> for important information</li>
-            <li>Include links to external sites, ticket booking, etc.</li>
-            <li>Add tournament dates and store updates</li>
-            <li>HTML is automatically sanitized for security</li>
-          </ul>
-        </div>
+                       <div className="text-xs text-gray-500">
+                 <p>💡 <strong>Tips:</strong></p>
+                 <ul className="list-disc list-inside ml-2 space-y-1">
+                   <li>Use <strong>**bold**</strong> for important information (will render as bold)</li>
+                   <li>Use <em>*italic*</em> for emphasis (will render as italic)</li>
+                   <li>Links like https://example.com will automatically become clickable</li>
+                   <li>Line breaks will be preserved</li>
+                   <li>Content is automatically converted from markdown to HTML</li>
+                 </ul>
+               </div>
       </div>
 
       {/* Existing Announcements */}

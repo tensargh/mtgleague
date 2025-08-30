@@ -235,7 +235,7 @@ The store details page displays information in the following order:
 ### REQUIRED FEATURES
 1. **Data Validation** - Validate win + draw + loss consistency per leg
 2. **Mobile Optimization** - Improve mobile experience and responsiveness
-3. **Store CMS and Announcements** - Simple announcement system with rich text field for next dates, store updates, and external links (tickets, reservations, store pages)
+3. **Store CMS and Announcements** - ✅ **IMPLEMENTED** - Simple announcement system with rich text field for next dates, store updates, and external links (tickets, reservations, store pages)
 
 ### COMPLETED FEATURES
 - ✅ **Google OAuth Login for TOs** - Fully implemented and working
@@ -244,6 +244,7 @@ The store details page displays information in the following order:
 - ✅ **Top 8 Tournament Management** - Fully implemented
 - ✅ **Season Standings and Leaderboards** - Fully implemented
 - ✅ **Tiebreaker Calculations** - Fully implemented with league rules (total legs played, total points, progressive leg removal)
+- ✅ **Store CMS and Announcements** - Fully implemented with markdown support, rich text editing, and public display
 - ✅ **All Core League Management Features** - Complete
 
 ### NOT REQUIRED (Removed from scope)

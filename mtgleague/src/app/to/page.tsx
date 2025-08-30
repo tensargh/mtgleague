@@ -325,7 +325,7 @@ export default function TODashboard() {
             </div>
             <div className="flex items-center space-x-3">
               <div className="h-2 w-2 bg-green-600 rounded-full"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Store announcements ✓</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Store CMS and Announcements ✓</span>
             </div>
           </div>
         </CardContent>
