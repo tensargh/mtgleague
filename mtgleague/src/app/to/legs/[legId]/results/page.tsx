@@ -62,6 +62,7 @@ export default function LegResultsPage() {
   const [allStorePlayers, setAllStorePlayers] = useState<Player[]>([])
   const [participatingPlayers, setParticipatingPlayers] = useState<Player[]>([])
   const [playerResults, setPlayerResults] = useState<PlayerResult[]>([])
+  const [lastLegResults, setLastLegResults] = useState<any[]>([])
   const [showAddPlayer, setShowAddPlayer] = useState(false)
   const [addPlayerMode, setAddPlayerMode] = useState<'select' | 'new'>('select')
   const [selectedPlayerId, setSelectedPlayerId] = useState('')
@@ -172,6 +173,7 @@ export default function LegResultsPage() {
       
       // Get players from previous legs (for new legs)
       let leaguePlayers: Player[] = []
+      let lastLegResults: any[] = []
       if (legIds.length > 0) {
         const { data: allSeasonResults, error: resultsError } = await supabase
           .from('leg_results')
@@ -192,6 +194,55 @@ export default function LegResultsPage() {
         
         leaguePlayers = allPlayers.filter(player => leaguePlayerIds.includes(player.id))
         console.log('League players found:', leaguePlayers)
+
+        // Get the most recent leg results to determine who didn't play last round
+        console.log('Looking for last leg before legId:', legId)
+        
+        // First get the current leg's round number
+        const { data: currentLegData, error: currentLegError } = await supabase
+          .from('legs')
+          .select('round_number')
+          .eq('id', legId)
+          .single()
+        
+        if (currentLegError || !currentLegData) {
+          console.log('Could not get current leg round number:', currentLegError)
+        } else {
+          console.log('Current leg round number:', currentLegData.round_number)
+          
+          // Check if this is not the first leg
+          if (currentLegData.round_number > 1) {
+            // Get the leg with the previous round number
+            const { data: lastLegData, error: lastLegError } = await supabase
+              .from('legs')
+              .select('id')
+              .eq('season_id', seasonData.id)
+              .eq('round_number', currentLegData.round_number - 1)
+              .single()
+
+            console.log('Last leg query result:', { lastLegData, lastLegError })
+            
+            if (!lastLegError && lastLegData) {
+              console.log('Found last leg:', lastLegData.id, 'now getting results')
+              const { data: lastResults, error: lastResultsError } = await supabase
+                .from('leg_results')
+                .select('player_id, participated')
+                .eq('leg_id', lastLegData.id)
+
+              console.log('Last leg results query result:', { lastResults, lastResultsError })
+              
+              if (!lastResultsError && lastResults) {
+                lastLegResults = lastResults // Use local variable directly
+                setLastLegResults(lastResults) // Also set state for other functions
+                console.log('Last leg results for default participation:', lastResults)
+              }
+            } else {
+              console.log('No last leg found or error occurred:', lastLegError)
+            }
+          } else {
+            console.log('This is the first leg of the season, no previous leg to check')
+          }
+        }
       } else {
         console.log('No legs found in season')
       }
@@ -239,7 +290,24 @@ export default function LegResultsPage() {
       // Initialize player results directly
       const initialResults: PlayerResult[] = playersToShow.map(player => {
         const existingResult = existingResults?.find(r => r.player_id === player.id)
-        console.log(`Setting up result for ${player.name}:`, existingResult)
+        console.log(`Processing player ${player.name}: existingResult=`, existingResult)
+        
+        // Determine default participation based on last leg
+        let defaultParticipated = true
+        console.log(`Checking participation for ${player.name}: existingResult=${!!existingResult}, lastLegResults.length=${lastLegResults.length}`)
+        
+        if (!existingResult && lastLegResults.length > 0) {
+          const lastLegResult = lastLegResults.find((r: any) => r.player_id === player.id)
+          console.log(`Last leg result for ${player.name}:`, lastLegResult)
+          
+          // If player didn't participate in last leg, default to not participating
+          if (lastLegResult && !lastLegResult.participated) {
+            defaultParticipated = false
+            console.log(`Player ${player.name} didn't play last round, defaulting to "did not play"`)
+          }
+        }
+        
+        console.log(`Setting up result for ${player.name}:`, existingResult, 'default participated:', defaultParticipated)
         return {
           player_id: player.id,
           player_name: player.name,
@@ -247,12 +315,17 @@ export default function LegResultsPage() {
           draws: existingResult?.draws || 0,
           losses: existingResult?.losses || 0,
           points: existingResult?.points || 0,
-          participated: existingResult ? existingResult.participated : true
+          participated: existingResult ? existingResult.participated : defaultParticipated
         }
       })
 
       console.log('Initial results set up:', initialResults)
       console.log('Players to show count:', playersToShow.length)
+      
+      // Debug: Check which players are marked as not participating
+      const notParticipating = initialResults.filter(r => !r.participated)
+      console.log('Players marked as not participating:', notParticipating.map(r => r.player_name))
+      
       setPlayerResults(initialResults)
 
     } catch (error) {
@@ -296,6 +369,16 @@ export default function LegResultsPage() {
       const selectedPlayer = allStorePlayers.find(p => p.id === selectedPlayerId)
       if (selectedPlayer) {
         // Add existing player to results
+        // Check if they participated in the last leg to set default participation
+        let defaultParticipated = true
+        if (lastLegResults.length > 0) {
+          const lastLegResult = lastLegResults.find((r: any) => r.player_id === selectedPlayer.id)
+          if (lastLegResult && !lastLegResult.participated) {
+            defaultParticipated = false
+            console.log(`Adding player ${selectedPlayer.name} who didn't play last round, defaulting to "did not play"`)
+          }
+        }
+        
         setPlayerResults(prev => [...prev, {
           player_id: selectedPlayer.id,
           player_name: selectedPlayer.name,
@@ -303,7 +386,7 @@ export default function LegResultsPage() {
           draws: 0,
           losses: 0,
           points: 0,
-          participated: true
+          participated: defaultParticipated
         }])
         setShowAddPlayer(false)
         setSelectedPlayerId('')
@@ -327,6 +410,16 @@ export default function LegResultsPage() {
         }
 
         // Add new player to results
+        // Check if they participated in the last leg to set default participation
+        let defaultParticipated = true
+        if (lastLegResults.length > 0) {
+          const lastLegResult = lastLegResults.find((r: any) => r.player_id === newPlayer.id)
+          if (lastLegResult && !lastLegResult.participated) {
+            defaultParticipated = false
+            console.log(`Adding new player ${newPlayer.name} who didn't play last round, defaulting to "did not play"`)
+          }
+        }
+        
         setPlayerResults(prev => [...prev, {
           player_id: newPlayer.id,
           player_name: newPlayer.name,
@@ -334,7 +427,7 @@ export default function LegResultsPage() {
           draws: 0,
           losses: 0,
           points: 0,
-          participated: true
+          participated: defaultParticipated
         }])
 
         // Refresh the store players list (excluding deleted players)
