@@ -143,11 +143,12 @@ export default function TODashboard() {
 
       setUpcomingLegs(legsCount || 0)
 
-      // Load total players count
+      // Load total non-deleted players count
       const { count: playersCount } = await supabase
         .from('players')
         .select('*', { count: 'exact', head: true })
         .eq('store_id', storeId)
+        .is('deleted_at', null)
 
       setTotalPlayers(playersCount || 0)
 

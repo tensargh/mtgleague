@@ -291,11 +291,12 @@ export default function Top8Page() {
         return []
       }
 
-      // Get all players from the store (including deleted ones for TO view)
+      // Get all non-deleted players from the store for standings calculation
       const { data: players, error: playersError } = await supabase
         .from('players')
         .select('id, name, visibility')
         .eq('store_id', seasonData.store_id)
+        .is('deleted_at', null)
 
       if (playersError) {
         console.error('Error loading players:', playersError)

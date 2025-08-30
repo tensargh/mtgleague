@@ -138,11 +138,12 @@ export default function LegResultsPage() {
 
       setStore(storeData)
 
-      // Get all players from this store
+      // Get all non-deleted players from this store
       const { data: allPlayers, error: playersError } = await supabase
         .from('players')
         .select('*')
         .eq('store_id', storeData.id)
+        .is('deleted_at', null)
         .order('name', { ascending: true })
 
       if (playersError) {
@@ -336,11 +337,12 @@ export default function LegResultsPage() {
           participated: true
         }])
 
-        // Refresh the store players list
+        // Refresh the store players list (excluding deleted players)
         const { data: updatedPlayers } = await supabase
           .from('players')
           .select('*')
           .eq('store_id', store!.id)
+          .is('deleted_at', null)
           .order('name')
 
         if (updatedPlayers) {

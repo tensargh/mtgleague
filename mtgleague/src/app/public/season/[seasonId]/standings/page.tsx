@@ -211,11 +211,12 @@ export default function PublicSeasonStandingsPage() {
         return [];
       }
 
-      // Get all players from the store (not just those who participated)
+      // Get all non-deleted players from the store (not just those who participated)
       const { data: players, error: playersError } = await supabase
         .from('players')
         .select('id, name, visibility')
-        .eq('store_id', seasonData.store_id);
+        .eq('store_id', seasonData.store_id)
+        .is('deleted_at', null);
 
       if (playersError) {
         console.error('Error loading players:', playersError);

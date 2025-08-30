@@ -263,11 +263,12 @@ export default function LegsPage() {
     try {
       console.log('Loading standings for season:', seasonId)
       
-      // Get all players from the store
+      // Get all non-deleted players from the store
       const { data: players, error: playersError } = await supabase
         .from('players')
         .select('id, name')
         .eq('store_id', store?.id)
+        .is('deleted_at', null)
 
       if (playersError) {
         console.error('Error loading players:', playersError)

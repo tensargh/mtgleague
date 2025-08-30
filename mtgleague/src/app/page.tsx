@@ -177,9 +177,19 @@ export default function LandingPage() {
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
                 Select Your Store
               </h1>
-              <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-6">
                 Choose your local game store to view tournaments, leagues, and events.
               </p>
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => router.push('/store-finder')}
+                  className="flex items-center space-x-2"
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span>Find Stores Near Me</span>
+                </Button>
+              </div>
             </div>
 
             {stores.length === 0 ? (
@@ -264,6 +274,14 @@ export default function LandingPage() {
           </p>
           <div className="border-t border-gray-800 mt-4 pt-4 text-center text-gray-400">
             <p>&copy; 2024 MtgLeague. All rights reserved.</p>
+            <div className="mt-2">
+              <button
+                onClick={() => router.push('/privacy')}
+                className="text-blue-400 hover:text-blue-300 underline text-sm"
+              >
+                Privacy Statement
+              </button>
+            </div>
           </div>
         </div>
       </footer>
