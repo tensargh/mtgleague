@@ -302,6 +302,10 @@ export default function TODashboard() {
               <div className="h-2 w-2 bg-green-600 rounded-full"></div>
               <span className="text-sm text-gray-600 dark:text-gray-400">Store finder (requires Google Maps API key) ✓</span>
             </div>
+            <div className="flex items-center space-x-3">
+              <div className="h-2 w-2 bg-green-600 rounded-full"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Tiebreaker calculations ✓</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -316,10 +320,7 @@ export default function TODashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="h-2 w-2 bg-yellow-600 rounded-full"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Tiebreaker calculations</span>
-            </div>
+
             <div className="flex items-center space-x-3">
               <div className="h-2 w-2 bg-yellow-600 rounded-full"></div>
               <span className="text-sm text-gray-600 dark:text-gray-400">Data validation (win + draw + loss consistency)</span>
@@ -330,7 +331,7 @@ export default function TODashboard() {
             </div>
             <div className="flex items-center space-x-3">
               <div className="h-2 w-2 bg-yellow-600 rounded-full"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Store CMS and announcements</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Store announcements (dates, updates, external links for tickets/reservations)</span>
             </div>
           </div>
         </CardContent>
