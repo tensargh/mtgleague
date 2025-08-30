@@ -99,24 +99,30 @@
 
 ### 🔄 IN PROGRESS / PARTIALLY COMPLETE
 
-#### Advanced Features
-- ⚠️ Tiebreaker calculations
-- ⚠️ Advanced standings algorithms
-- ⚠️ Season statistics and analytics
-- ⚠️ Player performance tracking over time
+#### Required Features
+- ⚠️ Tiebreaker calculations (need to determine method)
+- ⚠️ Data validation (win + draw + loss consistency per leg)
+- ⚠️ Mobile optimization
+- ⚠️ Store CMS and announcements
+
+#### Note: Most "Advanced Features" are actually complete
+- ✅ **Advanced standings algorithms** - Best N results calculation is fully implemented
+- ✅ **Season statistics** - Basic standings and participation tracking is complete
+- ✅ **Player performance tracking** - Results tracking and standings are fully functional
 
 ### ❌ NOT YET IMPLEMENTED
 
-#### Advanced Features
+#### Required Features
+- ❌ Tiebreaker calculations (need to determine method)
+- ❌ Data validation (win + draw + loss consistency per leg)
+- ❌ Mobile optimization
+- ❌ Store CMS and announcements
+
+#### Optional Features (Not Required)
 - ❌ Export functionality (CSV, PDF)
 - ❌ Advanced search and filtering
-
-#### User Experience
-- ❌ Email notifications for leg results
-- ❌ Mobile app or PWA
+- ❌ Email notifications
 - ❌ Real-time updates
-
-#### Integration
 - ❌ API endpoints for external integrations
 - ❌ Webhook system
 - ❌ Third-party tournament software integration
@@ -226,21 +232,27 @@ The store details page displays information in the following order:
 
 ## Next Priority Items
 
-### HIGH PRIORITY
-1. **Deployment to Vercel** - Deploy the application to Vercel for production use
-2. **Tiebreaker Calculations** - Implement proper tiebreaker logic for standings
-3. **Data Validation** - Add validation for leg results and player data (prevent duplicate/invalid entries)
-4. **Export Functionality** - Allow exporting standings and brackets to CSV/PDF
-5. **Advanced Standings** - Add more sophisticated standings calculations (e.g., head-to-head, SoS)
+### REQUIRED FEATURES
+1. **Tiebreaker Calculations** - Implement tiebreaker logic for standings (method TBD)
+2. **Data Validation** - Validate win + draw + loss consistency per leg
+3. **Mobile Optimization** - Improve mobile experience and responsiveness
+4. **Store CMS and Announcements** - Allow stores to post announcements and manage content
 
-### MEDIUM PRIORITY
-1. **Email Notifications** - Notify players/TOs when leg results or Top 8 changes are posted
-2. **Mobile Optimization** - Improve mobile experience and responsiveness
-3. **Season Statistics** - Add analytics and performance tracking for players/seasons
+### COMPLETED FEATURES
+- ✅ **Google OAuth Login for TOs** - Fully implemented and working
+- ✅ **Store Finder** - Implemented (requires Google Maps API key configuration)
+- ✅ **Leg Result Entry and Management** - Fully implemented
+- ✅ **Top 8 Tournament Management** - Fully implemented
+- ✅ **Season Standings and Leaderboards** - Fully implemented
+- ✅ **All Core League Management Features** - Complete
 
-### LOW PRIORITY
-1. **Dev/QA/Prod Environments** - Set up separate development, QA, and production environments
-2. **Analytics Dashboard** - Add comprehensive statistics and performance tracking
-3. **API Development** - Create external integration capabilities (API endpoints, webhooks)
-4. **Real-time Updates** - Enable live updates for standings and brackets
-5. **Mobile App** - Native mobile application or PWA
+### NOT REQUIRED (Removed from scope)
+- Export functionality (CSV, PDF)
+- Email notifications
+- Real-time updates
+- API endpoints for external integrations
+- Webhook system
+- Third-party tournament software integration
+- Advanced search and filtering
+- Season statistics and analytics
+- Bulk operations and templates

@@ -272,12 +272,12 @@ export default function TODashboard() {
         </CardContent>
       </Card>
 
-      {/* Coming Soon */}
+      {/* Current Status */}
       <Card>
         <CardHeader>
-          <CardTitle>Coming Soon</CardTitle>
+          <CardTitle>Current Status</CardTitle>
           <CardDescription>
-            Features that are currently in development
+            Features that are implemented and working
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -287,15 +287,49 @@ export default function TODashboard() {
               <span className="text-sm text-gray-600 dark:text-gray-400">Leg result entry and management ✓</span>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Top 8 tournament management</span>
+              <div className="h-2 w-2 bg-green-600 rounded-full"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Top 8 tournament management ✓</span>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Season standings and leaderboards</span>
+              <div className="h-2 w-2 bg-green-600 rounded-full"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Season standings and leaderboards ✓</span>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
+              <div className="h-2 w-2 bg-green-600 rounded-full"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Google OAuth login for TOs ✓</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="h-2 w-2 bg-green-600 rounded-full"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Store finder (requires Google Maps API key) ✓</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Next Features */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Next Features</CardTitle>
+          <CardDescription>
+            Features currently being developed
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="h-2 w-2 bg-yellow-600 rounded-full"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Tiebreaker calculations</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="h-2 w-2 bg-yellow-600 rounded-full"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Data validation (win + draw + loss consistency)</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="h-2 w-2 bg-yellow-600 rounded-full"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Mobile optimization</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="h-2 w-2 bg-yellow-600 rounded-full"></div>
               <span className="text-sm text-gray-600 dark:text-gray-400">Store CMS and announcements</span>
             </div>
           </div>

@@ -15,6 +15,7 @@ import { Trophy, Calendar, Plus, Loader2, Users, Play, CheckCircle, Clock, Refre
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { Top8Bracket, Top8BracketProps } from '@/components/Top8Bracket'
+import { calculateStandingsWithTiebreakers, formatTiebreakerInfo, PlayerStanding } from '@/lib/tiebreakers'
 
 interface Season {
   id: string
@@ -42,17 +43,7 @@ interface Store {
 
 
 
-interface PlayerStanding {
-  player_id: string
-  player_name: string
-  total_wins: number
-  total_draws: number
-  total_losses: number
-  total_points: number
-  legs_played: number
-  leg_scores: { [legId: string]: { wins: number; draws: number; losses: number; points: number; participated: boolean } }
-  best_leg_ids: string[]
-}
+
 
 export default function LegsPage() {
   const router = useRouter()
@@ -355,7 +346,7 @@ export default function LegsPage() {
         })
       })
 
-      // Convert to array and sort by total points
+      // Convert to array and apply best N results calculation
       const standingsArray = Array.from(standingsMap.values())
         .map(standing => {
           // Calculate best N results for this player
@@ -370,10 +361,12 @@ export default function LegsPage() {
             best_leg_ids: bestResults.bestLegIds
           }
         })
-        .sort((a, b) => b.total_points - a.total_points)
 
-      console.log('Calculated standings:', standingsArray)
-      setStandings(standingsArray)
+      // Apply tiebreaker logic to the standings
+      const finalStandings = calculateStandingsWithTiebreakers(standingsArray, selectedSeason?.best_legs_count || 0)
+
+      console.log('Calculated standings:', finalStandings)
+      setStandings(finalStandings)
 
     } catch (error) {
       console.error('Error loading standings:', error)
@@ -771,6 +764,7 @@ export default function LegsPage() {
                         </TableHead>
                       ))}
                       <TableHead className="text-center font-bold">Total</TableHead>
+                      <TableHead className="text-center">Tiebreaker</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -798,6 +792,9 @@ export default function LegsPage() {
                           <div className="space-y-1">
                             <div>{standing.total_points} pts</div>
                           </div>
+                        </TableCell>
+                        <TableCell className="text-center text-sm text-gray-600 dark:text-gray-400">
+                          {standing.tiebreaker_info ? formatTiebreakerInfo(standing.tiebreaker_info) : ''}
                         </TableCell>
                       </TableRow>
                     ))}
