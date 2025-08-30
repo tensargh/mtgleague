@@ -6,9 +6,10 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Trophy, Calendar, Users, Store, Plus } from 'lucide-react'
+import { Trophy, Calendar, Users, Store, Plus, Megaphone } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import StoreAnnouncements from '@/components/StoreAnnouncements'
 
 interface User {
   id: string
@@ -246,6 +247,22 @@ export default function TODashboard() {
         </Card>
       </div>
 
+      {/* Store Announcements */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Megaphone className="h-5 w-5" />
+            <span>Store Announcements</span>
+          </CardTitle>
+          <CardDescription>
+            Manage announcements and updates for your store
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <StoreAnnouncements storeId={store?.id} />
+        </CardContent>
+      </Card>
+
       {/* Quick Actions */}
       <Card>
         <CardHeader>
@@ -306,6 +323,10 @@ export default function TODashboard() {
               <div className="h-2 w-2 bg-green-600 rounded-full"></div>
               <span className="text-sm text-gray-600 dark:text-gray-400">Tiebreaker calculations ✓</span>
             </div>
+            <div className="flex items-center space-x-3">
+              <div className="h-2 w-2 bg-green-600 rounded-full"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Store announcements ✓</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -320,7 +341,6 @@ export default function TODashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-
             <div className="flex items-center space-x-3">
               <div className="h-2 w-2 bg-yellow-600 rounded-full"></div>
               <span className="text-sm text-gray-600 dark:text-gray-400">Data validation (win + draw + loss consistency)</span>
@@ -328,10 +348,6 @@ export default function TODashboard() {
             <div className="flex items-center space-x-3">
               <div className="h-2 w-2 bg-yellow-600 rounded-full"></div>
               <span className="text-sm text-gray-600 dark:text-gray-400">Mobile optimization</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="h-2 w-2 bg-yellow-600 rounded-full"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Store announcements (dates, updates, external links for tickets/reservations)</span>
             </div>
           </div>
         </CardContent>

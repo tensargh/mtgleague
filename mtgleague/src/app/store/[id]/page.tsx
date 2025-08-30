@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Trophy, Store, MapPin, Users, Calendar, Loader2, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import StoreAnnouncementsDisplay from '@/components/StoreAnnouncementsDisplay'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -621,6 +622,9 @@ export default function StoreDetailsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Store Announcements */}
+          <StoreAnnouncementsDisplay storeId={storeId} />
 
           {/* Active Seasons - each in its own container */}
           {activeSeasons.length > 0 && (
