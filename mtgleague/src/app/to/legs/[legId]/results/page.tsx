@@ -695,18 +695,6 @@ export default function LegResultsPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor={`draws-${result.player_id}`}>Draws</Label>
-                      <Input
-                        id={`draws-${result.player_id}`}
-                        type="number"
-                        min="0"
-                        max="9"
-                        value={result.draws}
-                        onChange={(e) => handleResultChange(result.player_id, 'draws', parseInt(e.target.value) || 0)}
-                        className="w-20 h-12 text-center text-xl font-semibold"
-                      />
-                    </div>
-                    <div>
                       <Label htmlFor={`losses-${result.player_id}`}>Losses</Label>
                       <Input
                         id={`losses-${result.player_id}`}
@@ -715,6 +703,18 @@ export default function LegResultsPage() {
                         max="9"
                         value={result.losses}
                         onChange={(e) => handleResultChange(result.player_id, 'losses', parseInt(e.target.value) || 0)}
+                        className="w-20 h-12 text-center text-xl font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`draws-${result.player_id}`}>Draws</Label>
+                      <Input
+                        id={`draws-${result.player_id}`}
+                        type="number"
+                        min="0"
+                        max="9"
+                        value={result.draws}
+                        onChange={(e) => handleResultChange(result.player_id, 'draws', parseInt(e.target.value) || 0)}
                         className="w-20 h-12 text-center text-xl font-semibold"
                       />
                     </div>
