@@ -274,13 +274,13 @@ export default function LegResultsPage() {
       } else {
         console.log('No existing results, showing players from previous legs')
         // For new legs, show players from previous legs if any exist
-        // If no previous legs (first leg of season), show all store players
+        // If no previous legs (first leg of season), start with empty list - TO will add players manually
         if (leaguePlayers.length > 0) {
           playersToShow = leaguePlayers
           console.log('Using league players from previous legs:', playersToShow)
         } else {
-          playersToShow = allPlayers
-          console.log('First leg of season, showing all store players:', playersToShow)
+          playersToShow = []
+          console.log('First leg of season, starting with empty player list - TO will add players who participated')
         }
       }
 
