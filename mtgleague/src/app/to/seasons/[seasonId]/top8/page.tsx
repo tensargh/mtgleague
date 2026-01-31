@@ -325,29 +325,33 @@ export default function Top8Page() {
       // Calculate standings using the same logic as legs page
       const standingsMap = new Map<string, PlayerStanding>()
 
-      // Initialize all players
-      players?.forEach(player => {
-        standingsMap.set(player.id, {
-          player_id: player.id,
-          player_name: player.name,
-          player_visibility: player.visibility,
-          total_wins: 0,
-          total_draws: 0,
-          total_losses: 0,
-          total_points: 0,
-          legs_played: 0,
-          rank: 0,
-          leg_scores: {},
-          best_leg_ids: []
-        })
-      })
-
-      // Process results by leg
+      // Process results by leg and only initialize players who have results
       completedLegs.forEach(leg => {
         const legResults = allResults?.filter(r => r.leg_id === leg.id) || []
 
         legResults.forEach(result => {
-          const standing = standingsMap.get(result.player_id)
+          // Get or create standing for this player
+          let standing = standingsMap.get(result.player_id)
+          if (!standing) {
+            const player = players?.find(p => p.id === result.player_id)
+            if (player) {
+              standing = {
+                player_id: player.id,
+                player_name: player.name,
+                player_visibility: player.visibility,
+                total_wins: 0,
+                total_draws: 0,
+                total_losses: 0,
+                total_points: 0,
+                legs_played: 0,
+                rank: 0,
+                leg_scores: {},
+                best_leg_ids: []
+              }
+              standingsMap.set(player.id, standing)
+            }
+          }
+          
           if (standing) {
             standing.total_wins += result.wins || 0
             standing.total_draws += result.draws || 0
