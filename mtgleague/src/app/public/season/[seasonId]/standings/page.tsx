@@ -153,12 +153,26 @@ export default function PublicSeasonStandingsPage() {
             }
 
             // Combine matches with player data
-            const matchesWithPlayers = matchesData.map((match: any) => ({
-              ...match,
-              player1: match.player1_id ? playersData[match.player1_id] : null,
-              player2: match.player2_id ? playersData[match.player2_id] : null,
-              winner: match.winner_id ? playersData[match.winner_id] : null,
-            }));
+            const matchesWithPlayers = matchesData.map((match: any) => {
+              const player1 = match.player1_id ? playersData[match.player1_id] : null;
+              const player2 = match.player2_id ? playersData[match.player2_id] : null;
+              const winnerPlayer = match.winner_id ? playersData[match.winner_id] : null;
+
+              let winner: 1 | 2 | undefined;
+              if (match.winner_id && match.player1_id && match.winner_id === match.player1_id) {
+                winner = 1;
+              } else if (match.winner_id && match.player2_id && match.winner_id === match.player2_id) {
+                winner = 2;
+              }
+
+              return {
+                ...match,
+                player1,
+                player2,
+                winner,
+                winner_player: winnerPlayer,
+              };
+            });
 
             // Group matches by round
             const qf = matchesWithPlayers.filter((m: any) => m.round === 'qf');
